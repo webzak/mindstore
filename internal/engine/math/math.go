@@ -4,21 +4,12 @@ import (
 	"fmt"
 	"math"
 	"sort"
-
-	"github.com/webzak/mindstore/internal/types"
 )
-
-// Distance represents distance calculation result
-type Distance struct {
-	ID       int     // index number
-	Value    float32 // vector distance value
-	Position int     // data position
-}
 
 // CosineSimRanking calculates cosine similarity over vectors list
 // The results can be limited by limit value, 0 means return all
 // The results are ordered by sort order
-func CosineSimRanking(rows [][]float32, vector []float32, sortOrder types.SortType, limit int) ([]Distance, error) {
+func CosineSimRanking(rows [][]float32, vector []float32, sortOrder SortOrder, limit int) ([]Distance, error) {
 	lenRows := len(rows)
 	lenVector := len(vector)
 	res := make([]Distance, lenRows)
@@ -27,12 +18,11 @@ func CosineSimRanking(rows [][]float32, vector []float32, sortOrder types.SortTy
 			return nil, fmt.Errorf("vector size mismatch: expected: %d, actual: %d", lenVector, len(row))
 		}
 		res[i] = Distance{
-			ID:       i,
-			Value:    CosineSim(row, vector),
-			Position: i,
+			ID:    i,
+			Value: CosineSim(row, vector),
 		}
 	}
-	if sortOrder == types.SortAsc {
+	if sortOrder == SortAsc {
 		sort.Slice(res, func(i, j int) bool {
 			return res[i].Value < res[j].Value
 		})

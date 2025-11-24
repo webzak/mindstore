@@ -3,8 +3,6 @@ package math
 import (
 	"math"
 	"testing"
-
-	"github.com/webzak/mindstore/internal/types"
 )
 
 // TestCosineSim tests the CosineSim function with various cases
@@ -123,7 +121,7 @@ func TestCosineSimRanking(t *testing.T) {
 		}
 		vector := []float32{1.0, 0.0, 0.0}
 
-		result, err := CosineSimRanking(rows, vector, types.SortDesc, 0)
+		result, err := CosineSimRanking(rows, vector, SortDesc, 0)
 		if err != nil {
 			t.Fatalf("CosineSimRanking returned error: %v", err)
 		}
@@ -153,7 +151,7 @@ func TestCosineSimRanking(t *testing.T) {
 		}
 		vector := []float32{1.0, 0.0, 0.0}
 
-		result, err := CosineSimRanking(rows, vector, types.SortAsc, 0)
+		result, err := CosineSimRanking(rows, vector, SortAsc, 0)
 		if err != nil {
 			t.Fatalf("CosineSimRanking returned error: %v", err)
 		}
@@ -180,7 +178,7 @@ func TestCosineSimRanking(t *testing.T) {
 		}
 		vector := []float32{1.0, 0.0}
 
-		result, err := CosineSimRanking(rows, vector, types.SortDesc, 2)
+		result, err := CosineSimRanking(rows, vector, SortDesc, 2)
 		if err != nil {
 			t.Fatalf("CosineSimRanking returned error: %v", err)
 		}
@@ -197,7 +195,7 @@ func TestCosineSimRanking(t *testing.T) {
 		}
 		vector := []float32{1.0, 0.0}
 
-		result, err := CosineSimRanking(rows, vector, types.SortDesc, 10)
+		result, err := CosineSimRanking(rows, vector, SortDesc, 10)
 		if err != nil {
 			t.Fatalf("CosineSimRanking returned error: %v", err)
 		}
@@ -215,7 +213,7 @@ func TestCosineSimRanking(t *testing.T) {
 		}
 		vector := []float32{1.0, 0.0}
 
-		result, err := CosineSimRanking(rows, vector, types.SortDesc, 0)
+		result, err := CosineSimRanking(rows, vector, SortDesc, 0)
 		if err != nil {
 			t.Fatalf("CosineSimRanking returned error: %v", err)
 		}
@@ -232,7 +230,7 @@ func TestCosineSimRanking(t *testing.T) {
 		}
 		vector := []float32{1.0, 0.0, 0.0}
 
-		result, err := CosineSimRanking(rows, vector, types.SortDesc, 0)
+		result, err := CosineSimRanking(rows, vector, SortDesc, 0)
 		if err == nil {
 			t.Fatalf("Expected error for size mismatch, got nil")
 		}
@@ -245,7 +243,7 @@ func TestCosineSimRanking(t *testing.T) {
 		rows := [][]float32{}
 		vector := []float32{1.0, 0.0}
 
-		result, err := CosineSimRanking(rows, vector, types.SortDesc, 0)
+		result, err := CosineSimRanking(rows, vector, SortDesc, 0)
 		if err != nil {
 			t.Fatalf("CosineSimRanking returned error: %v", err)
 		}
@@ -262,18 +260,15 @@ func TestCosineSimRanking(t *testing.T) {
 		}
 		vector := []float32{1.0, 0.0}
 
-		result, err := CosineSimRanking(rows, vector, types.SortDesc, 0)
+		result, err := CosineSimRanking(rows, vector, SortDesc, 0)
 		if err != nil {
 			t.Fatalf("CosineSimRanking returned error: %v", err)
 		}
 
-		// Check that ID and Position are set correctly
+		// Check that ID is set correctly
 		for i, dist := range result {
 			if dist.ID < 0 || dist.ID >= len(rows) {
 				t.Errorf("Invalid ID %d at result index %d", dist.ID, i)
-			}
-			if dist.Position < 0 || dist.Position >= len(rows) {
-				t.Errorf("Invalid Position %d at result index %d", dist.Position, i)
 			}
 		}
 	})
@@ -284,7 +279,7 @@ func TestCosineSimRanking(t *testing.T) {
 		}
 		vector := []float32{1.0, 0.0}
 
-		result, err := CosineSimRanking(rows, vector, types.SortDesc, 0)
+		result, err := CosineSimRanking(rows, vector, SortDesc, 0)
 		if err != nil {
 			t.Fatalf("CosineSimRanking returned error: %v", err)
 		}
@@ -332,6 +327,6 @@ func BenchmarkCosineSimRanking(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		CosineSimRanking(rows, vector, types.SortDesc, 10)
+		CosineSimRanking(rows, vector, SortDesc, 10)
 	}
 }
