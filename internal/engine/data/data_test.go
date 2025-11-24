@@ -26,7 +26,7 @@ func TestData(t *testing.T) {
 	if off1 != 0 {
 		t.Errorf("expected offset 0, got %d", off1)
 	}
-	if len1 != len(data1) {
+	if len1 != int32(len(data1)) {
 		t.Errorf("expected length %d, got %d", len(data1), len1)
 	}
 
@@ -38,7 +38,7 @@ func TestData(t *testing.T) {
 	if off2 != int64(len(data1)) {
 		t.Errorf("expected offset %d, got %d", len(data1), off2)
 	}
-	if len2 != len(data2) {
+	if len2 != int32(len(data2)) {
 		t.Errorf("expected length %d, got %d", len(data2), len2)
 	}
 

@@ -115,3 +115,8 @@ func (f *File) Truncate(size int64) error {
 	}
 	return os.Truncate(f.path, size)
 }
+
+// Path returns file path
+func (f *File) Path() string {
+	return f.path
+}

@@ -1,6 +1,7 @@
 package index
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -1241,6 +1242,373 @@ func TestFlush(t *testing.T) {
 		// Verify both rows are accessible
 		if idx.Count() != 2 {
 			t.Errorf("expected count to be 2, got %d", idx.Count())
+		}
+	})
+}
+
+// TestIterator tests the Iterator functionality
+func TestIterator(t *testing.T) {
+	t.Run("iterates over empty index", func(t *testing.T) {
+		tmpDir := testutil.MakeTempDir(t)
+		defer os.RemoveAll(tmpDir)
+		path := filepath.Join(tmpDir, "test.idx")
+
+		idx, err := New(path, nil)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		it := idx.Iterator()
+		row, err := it.Next()
+		if err != io.EOF {
+			t.Errorf("expected io.EOF, got %v", err)
+		}
+		if row != nil {
+			t.Errorf("expected nil row, got %+v", row)
+		}
+	})
+
+	t.Run("iterates over single row", func(t *testing.T) {
+		tmpDir := testutil.MakeTempDir(t)
+		defer os.RemoveAll(tmpDir)
+		path := filepath.Join(tmpDir, "test.idx")
+
+		idx, err := New(path, nil)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		row := Row{Offset: 100, Size: 50, Type: 1, Flags: 0}
+		if err := idx.Append(row); err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		it := idx.Iterator()
+		got, err := it.Next()
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if got == nil {
+			t.Fatal("expected row, got nil")
+		}
+		if got.Offset != row.Offset {
+			t.Errorf("expected offset %d, got %d", row.Offset, got.Offset)
+		}
+		if got.Size != row.Size {
+			t.Errorf("expected length %d, got %d", row.Size, got.Size)
+		}
+		if got.Flags != row.Flags {
+			t.Errorf("expected flags %d, got %d", row.Flags, got.Flags)
+		}
+
+		// Next call should return EOF
+		_, err = it.Next()
+		if err != io.EOF {
+			t.Errorf("expected io.EOF, got %v", err)
+		}
+	})
+
+	t.Run("iterates over multiple rows", func(t *testing.T) {
+		tmpDir := testutil.MakeTempDir(t)
+		defer os.RemoveAll(tmpDir)
+		path := filepath.Join(tmpDir, "test.idx")
+
+		idx, err := New(path, nil)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		rows := []Row{
+			{Offset: 100, Size: 50, Type: 1, Flags: 0},
+			{Offset: 200, Size: 75, Type: 2, Flags: 0},
+			{Offset: 300, Size: 100, Type: 3, Flags: 0},
+		}
+
+		for _, row := range rows {
+			if err := idx.Append(row); err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+		}
+
+		it := idx.Iterator()
+		for i, expected := range rows {
+			got, err := it.Next()
+			if err != nil {
+				t.Fatalf("row %d: expected no error, got %v", i, err)
+			}
+			if got == nil {
+				t.Fatalf("row %d: expected row, got nil", i)
+			}
+			if got.Offset != expected.Offset {
+				t.Errorf("row %d: expected offset %d, got %d", i, expected.Offset, got.Offset)
+			}
+			if got.Size != expected.Size {
+				t.Errorf("row %d: expected length %d, got %d", i, expected.Size, got.Size)
+			}
+			if got.Flags != expected.Flags {
+				t.Errorf("row %d: expected flags %d, got %d", i, expected.Flags, got.Flags)
+			}
+		}
+
+		// Next call should return EOF
+		_, err = it.Next()
+		if err != io.EOF {
+			t.Errorf("expected io.EOF, got %v", err)
+		}
+	})
+
+	t.Run("iterates over rows with flags", func(t *testing.T) {
+		tmpDir := testutil.MakeTempDir(t)
+		defer os.RemoveAll(tmpDir)
+		path := filepath.Join(tmpDir, "test.idx")
+
+		idx, err := New(path, nil)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		rows := []Row{
+			{Offset: 100, Size: 50, Type: 1, Flags: 0},
+			{Offset: 200, Size: 75, Type: 2, Flags: MarkedForRemoval},
+			{Offset: 300, Size: 100, Type: 3, Flags: 0},
+		}
+
+		for _, row := range rows {
+			if err := idx.Append(row); err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+		}
+
+		it := idx.Iterator()
+		for i, expected := range rows {
+			got, err := it.Next()
+			if err != nil {
+				t.Fatalf("row %d: expected no error, got %v", i, err)
+			}
+			if got == nil {
+				t.Fatalf("row %d: expected row, got nil", i)
+			}
+			if got.Offset != expected.Offset {
+				t.Errorf("row %d: expected offset %d, got %d", i, expected.Offset, got.Offset)
+			}
+			if got.Size != expected.Size {
+				t.Errorf("row %d: expected length %d, got %d", i, expected.Size, got.Size)
+			}
+			if got.Flags != expected.Flags {
+				t.Errorf("row %d: expected flags %d, got %d", i, expected.Flags, got.Flags)
+			}
+		}
+	})
+
+	t.Run("EOF is returned consistently after iteration completes", func(t *testing.T) {
+		tmpDir := testutil.MakeTempDir(t)
+		defer os.RemoveAll(tmpDir)
+		path := filepath.Join(tmpDir, "test.idx")
+
+		idx, err := New(path, nil)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		row := Row{Offset: 100, Size: 50, Type: 1, Flags: 0}
+		if err := idx.Append(row); err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		it := idx.Iterator()
+		// First call should succeed
+		_, err = it.Next()
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// Subsequent calls should all return EOF
+		for i := 0; i < 3; i++ {
+			_, err = it.Next()
+			if err != io.EOF {
+				t.Errorf("call %d: expected io.EOF, got %v", i, err)
+			}
+		}
+	})
+
+	t.Run("multiple iterators work independently", func(t *testing.T) {
+		tmpDir := testutil.MakeTempDir(t)
+		defer os.RemoveAll(tmpDir)
+		path := filepath.Join(tmpDir, "test.idx")
+
+		idx, err := New(path, nil)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		rows := []Row{
+			{Offset: 100, Size: 50, Type: 1, Flags: 0},
+			{Offset: 200, Size: 75, Type: 2, Flags: 0},
+		}
+
+		for _, row := range rows {
+			if err := idx.Append(row); err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+		}
+
+		// Create two iterators
+		it1 := idx.Iterator()
+		it2 := idx.Iterator()
+
+		// Advance first iterator
+		row1, err := it1.Next()
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if row1 == nil {
+			t.Fatal("expected row, got nil")
+		}
+		if row1.Offset != rows[0].Offset {
+			t.Errorf("it1: expected offset %d, got %d", rows[0].Offset, row1.Offset)
+		}
+
+		// Second iterator should still be at the beginning
+		row2, err := it2.Next()
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if row2 == nil {
+			t.Fatal("expected row, got nil")
+		}
+		if row2.Offset != rows[0].Offset {
+			t.Errorf("it2: expected offset %d, got %d", rows[0].Offset, row2.Offset)
+		}
+
+		// Advance first iterator to second row
+		row1, err = it1.Next()
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if row1 == nil {
+			t.Fatal("expected row, got nil")
+		}
+		if row1.Offset != rows[1].Offset {
+			t.Errorf("it1: expected offset %d, got %d", rows[1].Offset, row1.Offset)
+		}
+
+		// Second iterator should still be at second row
+		row2, err = it2.Next()
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if row2 == nil {
+			t.Fatal("expected row, got nil")
+		}
+		if row2.Offset != rows[1].Offset {
+			t.Errorf("it2: expected offset %d, got %d", rows[1].Offset, row2.Offset)
+		}
+	})
+
+	t.Run("iterates over persisted and unpersisted rows", func(t *testing.T) {
+		tmpDir := testutil.MakeTempDir(t)
+		defer os.RemoveAll(tmpDir)
+		path := filepath.Join(tmpDir, "test.idx")
+
+		idx, err := New(path, &IndexOptions{MaxAppendBufferSize: 10})
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// Add persisted row
+		row1 := Row{Offset: 100, Size: 50, Type: 1, Flags: 0}
+		if err := idx.Append(row1); err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if err := idx.Flush(); err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// Add unpersisted row
+		row2 := Row{Offset: 200, Size: 75, Type: 2, Flags: 0}
+		if err := idx.Append(row2); err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// Iterator should see both rows
+		it := idx.Iterator()
+		got1, err := it.Next()
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if got1 == nil {
+			t.Fatal("expected row, got nil")
+		}
+		if got1.Offset != row1.Offset || got1.Size != row1.Size || got1.Flags != row1.Flags {
+			t.Errorf("row 1: expected (%d, %d, %d), got (%d, %d, %d)",
+				row1.Offset, row1.Size, row1.Flags, got1.Offset, got1.Size, got1.Flags)
+		}
+
+		got2, err := it.Next()
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if got2 == nil {
+			t.Fatal("expected row, got nil")
+		}
+		if got2.Offset != row2.Offset || got2.Size != row2.Size || got2.Flags != row2.Flags {
+			t.Errorf("row 2: expected (%d, %d, %d), got (%d, %d, %d)",
+				row2.Offset, row2.Size, row2.Flags, got2.Offset, got2.Size, got2.Flags)
+		}
+
+		_, err = it.Next()
+		if err != io.EOF {
+			t.Errorf("expected io.EOF, got %v", err)
+		}
+	})
+
+	t.Run("iterator reflects current state of index", func(t *testing.T) {
+		tmpDir := testutil.MakeTempDir(t)
+		defer os.RemoveAll(tmpDir)
+		path := filepath.Join(tmpDir, "test.idx")
+
+		idx, err := New(path, nil)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		row := Row{Offset: 100, Size: 50, Type: 1, Flags: 0}
+		if err := idx.Append(row); err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// Create iterator - should see 1 row
+		it := idx.Iterator()
+		_, err = it.Next()
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		_, err = it.Next()
+		if err != io.EOF {
+			t.Errorf("expected io.EOF, got %v", err)
+		}
+
+		// Add another row
+		row2 := Row{Offset: 200, Size: 75, Type: 2, Flags: 0}
+		if err := idx.Append(row2); err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		// New iterator should see both rows
+		it2 := idx.Iterator()
+		count := 0
+		for {
+			_, err := it2.Next()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			count++
+		}
+		if count != 2 {
+			t.Errorf("expected to iterate over 2 rows, got %d", count)
 		}
 	})
 }

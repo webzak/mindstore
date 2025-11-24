@@ -3,6 +3,7 @@ package index
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/webzak/mindstore/internal/engine/conv"
 	"github.com/webzak/mindstore/internal/engine/storage"
@@ -281,4 +282,31 @@ func (idx *Index) Optimise() error {
 
 	// Flush to save the compacted rows
 	return idx.Flush()
+}
+
+// Iterator is an iterator over index rows
+type Iterator struct {
+	idx      *Index
+	position int
+}
+
+// Iterator creates a new iterator over index rows
+func (idx *Index) Iterator() *Iterator {
+	return &Iterator{
+		idx:      idx,
+		position: 0,
+	}
+}
+
+// Next returns the next row and error
+// Returns nil and io.EOF when iteration is complete
+func (it *Iterator) Next() (*Row, error) {
+	if it.position >= len(it.idx.rows) {
+		return nil, io.EOF
+	}
+
+	row := it.idx.rows[it.position]
+	it.position++
+
+	return &row, nil
 }
