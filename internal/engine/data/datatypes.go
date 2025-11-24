@@ -1,17 +1,17 @@
 package data
 
-// DataType represents the type of data
-type DataType int8
+// Type represents the type of data
+type Type uint8
 
 const (
-	Text DataType = iota
+	Text Type = iota
 	Image
 	Audio
 	Video
 )
 
-// DataTypeToString converts a DataType to its string representation
-func DataTypeToString(dt DataType) string {
+// TypeToString converts a DataType to its string representation
+func TypeToString(dt Type) string {
 	switch dt {
 	case Text:
 		return "text"
@@ -26,8 +26,8 @@ func DataTypeToString(dt DataType) string {
 	}
 }
 
-// StringToDataType converts a string to its DataType representation
-func StringToDataType(s string) (DataType, bool) {
+// StringToType converts a string to its DataType representation
+func StringToType(s string) (Type, bool) {
 	switch s {
 	case "text":
 		return Text, true

@@ -6,6 +6,7 @@ import (
 )
 
 const Int64Size = int(unsafe.Sizeof(int64(0)))
+const Int32Size = int(unsafe.Sizeof(int32(0)))
 const Float32Size = int(unsafe.Sizeof(float32(0)))
 
 // Float32SliceToByte returns byte representation of float32 slice
@@ -33,4 +34,18 @@ func Int64ToBytes(value int64, dst []byte) {
 func BytesToInt64(bytes []byte) int64 {
 	v := binary.BigEndian.Uint64(bytes)
 	return int64(v)
+}
+
+// Int32ToBytes converts int to byte slice
+func Int32ToBytes(value int32, dst []byte) {
+	if len(dst) < Int32Size {
+		panic("destination size does is less than integer")
+	}
+	binary.BigEndian.PutUint32(dst, uint32(value))
+}
+
+// BytesToInt32 converts byte slice to int64
+func BytesToInt32(bytes []byte) int32 {
+	v := binary.BigEndian.Uint32(bytes)
+	return int32(v)
 }

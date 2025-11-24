@@ -23,11 +23,21 @@ func TestVectorConvert(t *testing.T) {
 	}
 }
 
-func TestIntConvert(t *testing.T) {
+func TestInt64Convert(t *testing.T) {
 	v := int64(4394823094832)
 	bs := make([]byte, Int64Size)
 	Int64ToBytes(v, bs)
 	rs := BytesToInt64(bs)
+	if rs != v {
+		t.Fatalf("Expected %d, result %d", v, rs)
+	}
+}
+
+func TestInt32Convert(t *testing.T) {
+	v := int32(433094832)
+	bs := make([]byte, Int32Size)
+	Int32ToBytes(v, bs)
+	rs := BytesToInt32(bs)
 	if rs != v {
 		t.Fatalf("Expected %d, result %d", v, rs)
 	}

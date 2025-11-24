@@ -21,9 +21,13 @@ type Row struct {
 	// Offset is the shift from start in bytes
 	Offset int64
 	// Size is the data length in bytes
-	Size int64
+	Size int32
 	// DataType is the type of data
-	DataType int64
+	DataType uint8
+	// Reserved space to align the size
+	Reserved1 uint8
+	Reserved2 uint8
+	Reserved3 uint8
 }
 
 // Index is the data index
@@ -71,8 +75,8 @@ func (idx *Index) Load() (int, error) {
 			return 0, fmt.Errorf("%w: expected %d, actual %d", storage.ErrFileRead, rowSize, n)
 		}
 		idx.rows[i].Offset = conv.BytesToInt64(buf[:conv.Int64Size])
-		idx.rows[i].Size = conv.BytesToInt64(buf[conv.Int64Size : conv.Int64Size*2])
-		idx.rows[i].DataType = conv.BytesToInt64(buf[conv.Int64Size*2 : conv.Int64Size*3])
+		idx.rows[i].Size = conv.BytesToInt32(buf[conv.Int64Size : conv.Int64Size+conv.Int32Size])
+		idx.rows[i].DataType = buf[conv.Int64Size+conv.Int32Size]
 	}
 	return len(idx.rows), nil
 }
@@ -87,8 +91,8 @@ func (idx *Index) Flush() (int, error) {
 	for _, row := range idx.rows {
 		buf := make([]byte, rowSize)
 		conv.Int64ToBytes(row.Offset, buf[:conv.Int64Size])
-		conv.Int64ToBytes(row.Size, buf[conv.Int64Size:conv.Int64Size*2])
-		conv.Int64ToBytes(row.DataType, buf[conv.Int64Size*2:conv.Int64Size*3])
+		conv.Int32ToBytes(row.Size, buf[conv.Int64Size:conv.Int64Size+conv.Int32Size])
+		buf[conv.Int64Size+conv.Int32Size] = row.DataType
 		_, err := writer.Write(buf)
 		if err != nil {
 			return 0, err
@@ -106,7 +110,7 @@ func (idx *Index) Get(n int) (Row, error) {
 }
 
 // Add adds new index record
-func (idx *Index) Add(offset int64, size int64, dataType int64) error {
+func (idx *Index) Add(offset int64, size int32, dataType uint8) error {
 	row := Row{
 		Offset:   offset,
 		Size:     size,
@@ -125,7 +129,7 @@ func (idx *Index) Remove(n int) error {
 	return nil
 }
 
-func (idx *Index) Replace(n int, offset int64, size int64, dataType int64) error {
+func (idx *Index) Replace(n int, offset int64, size int32, dataType uint8) error {
 	if n < 0 || n >= len(idx.rows) {
 		return ErrIndexOutOfRange
 	}
