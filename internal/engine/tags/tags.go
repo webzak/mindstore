@@ -10,12 +10,12 @@ import (
 
 // Tags manages tag-to-ID relationships
 type Tags struct {
+	// storage is the underlying file storage
+	storage *storage.File
 	// forward maps Tag -> IDs
 	forward map[string][]int
 	// reverse maps ID -> Tags
 	reverse map[int][]string
-	// storage is the underlying file storage
-	storage *storage.File
 }
 
 // New creates a new tags manager
