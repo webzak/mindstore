@@ -192,9 +192,7 @@ func (m *Meta) DeleteKey(id int, key string) error {
 
 // Flush persists the metadata to storage.
 func (m *Meta) Flush() error {
-	if !m.isLoaded {
-		return nil
-	}
+
 	if m.isPersisted {
 		return nil
 	}

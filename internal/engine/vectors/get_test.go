@@ -47,7 +47,7 @@ func TestGet(t *testing.T) {
 
 		// Append one vector
 		vector := make([]float32, DefaultVectorSize)
-		_, err = v.Append(vector)
+		err = v.Append(0, vector)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
 		}
@@ -71,13 +71,13 @@ func TestGet(t *testing.T) {
 		for i := range vector {
 			vector[i] = float32(i)
 		}
-		idx, err := v.Append(vector)
+		err = v.Append(0, vector)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
 		}
 
 		// Get the vector from append buffer (not yet flushed)
-		retrieved, err := v.Get(idx)
+		retrieved, err := v.Get(0)
 		if err != nil {
 			t.Fatalf("failed to get vector: %v", err)
 		}
@@ -105,7 +105,7 @@ func TestGet(t *testing.T) {
 		for i := range vector {
 			vector[i] = float32(i * 2)
 		}
-		idx, err := v.Append(vector)
+		err = v.Append(0, vector)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
 		}
@@ -117,7 +117,7 @@ func TestGet(t *testing.T) {
 		}
 
 		// Get the vector from persisted storage
-		retrieved, err := v.Get(idx)
+		retrieved, err := v.Get(0)
 		if err != nil {
 			t.Fatalf("failed to get vector: %v", err)
 		}
@@ -152,7 +152,7 @@ func TestGet(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*1000 + j)
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -205,13 +205,13 @@ func TestGet(t *testing.T) {
 		for i := range vector {
 			vector[i] = float32(i)
 		}
-		idx, err := v.Append(vector)
+		err = v.Append(0, vector)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
 		}
 
 		// Get the vector
-		retrieved, err := v.Get(idx)
+		retrieved, err := v.Get(0)
 		if err != nil {
 			t.Fatalf("failed to get vector: %v", err)
 		}
@@ -220,7 +220,7 @@ func TestGet(t *testing.T) {
 		retrieved[0] = 999.0
 
 		// Get the vector again
-		retrieved2, err := v.Get(idx)
+		retrieved2, err := v.Get(0)
 		if err != nil {
 			t.Fatalf("failed to get vector again: %v", err)
 		}
@@ -253,7 +253,7 @@ func TestGet(t *testing.T) {
 			for j := range persistedVectors[i] {
 				persistedVectors[i][j] = float32(i*100 + j)
 			}
-			_, err = v.Append(persistedVectors[i])
+			err = v.Append(i, persistedVectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -270,7 +270,7 @@ func TestGet(t *testing.T) {
 			for j := range appendVectors[i] {
 				appendVectors[i][j] = float32((i+10)*100 + j)
 			}
-			_, err = v.Append(appendVectors[i])
+			err = v.Append(10+i, appendVectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i+10, err)
 			}
@@ -351,7 +351,7 @@ func TestGet(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*10 + j)
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -399,7 +399,7 @@ func TestGet(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*50 + j)
 			}
-			_, err = v1.Append(vectors[i])
+			err = v1.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -447,7 +447,7 @@ func TestGet(t *testing.T) {
 		for i := range vector {
 			vector[i] = float32(i * 3)
 		}
-		idx, err := v.Append(vector)
+		err = v.Append(0, vector)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
 		}
@@ -457,7 +457,7 @@ func TestGet(t *testing.T) {
 		}
 
 		// Get the vector
-		retrieved, err := v.Get(idx)
+		retrieved, err := v.Get(0)
 		if err != nil {
 			t.Fatalf("failed to get vector: %v", err)
 		}
@@ -492,7 +492,7 @@ func TestGet(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*1000 + j)
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}

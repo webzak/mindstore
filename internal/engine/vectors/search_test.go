@@ -91,7 +91,7 @@ func TestSearch(t *testing.T) {
 		for i := range vector {
 			vector[i] = 1.0
 		}
-		idx, err := v.Append(vector)
+		err = v.Append(0, vector)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
 		}
@@ -106,8 +106,8 @@ func TestSearch(t *testing.T) {
 			t.Fatalf("expected 1 result, got %d", len(results))
 		}
 
-		if results[0].ID != idx {
-			t.Errorf("expected ID %d, got %d", idx, results[0].ID)
+		if results[0].ID != 0 {
+			t.Errorf("expected ID %d, got %d", 0, results[0].ID)
 		}
 
 		// Cosine similarity with itself should be 1.0
@@ -137,7 +137,7 @@ func TestSearch(t *testing.T) {
 				// Create vectors with different patterns
 				vectors[i][j] = float32(i+1) * 0.5
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -182,7 +182,7 @@ func TestSearch(t *testing.T) {
 			for j := range vector {
 				vector[j] = float32(i+1) * 0.3
 			}
-			_, err = v.Append(vector)
+			err = v.Append(i, vector)
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -236,7 +236,7 @@ func TestSearch(t *testing.T) {
 			for j := range vector {
 				vector[j] = float32(i+1) * 0.2
 			}
-			_, err = v.Append(vector)
+			err = v.Append(i, vector)
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -253,7 +253,7 @@ func TestSearch(t *testing.T) {
 			for j := range vector {
 				vector[j] = float32(i+1) * 0.2
 			}
-			_, err = v.Append(vector)
+			err = v.Append(i, vector)
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -309,7 +309,7 @@ func TestSearch(t *testing.T) {
 			for j := range vector {
 				vector[j] = float32(i+1) * 0.1
 			}
-			_, err = v.Append(vector)
+			err = v.Append(i, vector)
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -354,7 +354,7 @@ func TestSearch(t *testing.T) {
 			for j := range vector {
 				vector[j] = float32(i+1) * 0.15
 			}
-			_, err = v.Append(vector)
+			err = v.Append(i, vector)
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -396,7 +396,7 @@ func TestSearch(t *testing.T) {
 			for j := range vector {
 				vector[j] = float32(i+1) * 0.05
 			}
-			_, err = v.Append(vector)
+			err = v.Append(i, vector)
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -453,7 +453,7 @@ func TestSearch(t *testing.T) {
 		// Vector 0: [1, 0, 0, ...] - perfect match, similarity = 1.0
 		vector0 := make([]float32, DefaultVectorSize)
 		vector0[0] = 1.0
-		_, err = v.Append(vector0)
+		err = v.Append(0, vector0)
 		if err != nil {
 			t.Fatalf("failed to append vector 0: %v", err)
 		}
@@ -462,7 +462,7 @@ func TestSearch(t *testing.T) {
 		vector1 := make([]float32, DefaultVectorSize)
 		vector1[0] = 0.5
 		vector1[1] = 0.5
-		_, err = v.Append(vector1)
+		err = v.Append(1, vector1)
 		if err != nil {
 			t.Fatalf("failed to append vector 1: %v", err)
 		}
@@ -470,7 +470,7 @@ func TestSearch(t *testing.T) {
 		// Vector 2: [0, 1, 0, ...] - orthogonal, similarity = 0.0
 		vector2 := make([]float32, DefaultVectorSize)
 		vector2[1] = 1.0
-		_, err = v.Append(vector2)
+		err = v.Append(2, vector2)
 		if err != nil {
 			t.Fatalf("failed to append vector 2: %v", err)
 		}
@@ -528,7 +528,7 @@ func TestSearch(t *testing.T) {
 			for j := range vector {
 				vector[j] = float32(i+1) * 0.2
 			}
-			_, err = v.Append(vector)
+			err = v.Append(i, vector)
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -575,7 +575,7 @@ func TestSearch(t *testing.T) {
 			for j := range vector {
 				vector[j] = float32(i+1) * 0.1
 			}
-			_, err = v1.Append(vector)
+			err = v1.Append(i, vector)
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -631,7 +631,7 @@ func TestSearch(t *testing.T) {
 			for j := range vector {
 				vector[j] = float32(i+1) * 0.3
 			}
-			_, err = v.Append(vector)
+			err = v.Append(i, vector)
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -679,7 +679,7 @@ func TestSearch(t *testing.T) {
 			for j := range vector {
 				vector[j] = float32(i+1) * 0.4
 			}
-			_, err = v.Append(vector)
+			err = v.Append(i, vector)
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}

@@ -26,14 +26,9 @@ func TestAppend(t *testing.T) {
 		}
 
 		// Append the vector
-		idx, err := v.Append(vector)
+		err = v.Append(0, vector)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
-		}
-
-		// Verify index is 0 (first vector)
-		if idx != 0 {
-			t.Errorf("expected index 0, got %d", idx)
 		}
 
 		// Verify count
@@ -63,7 +58,7 @@ func TestAppend(t *testing.T) {
 		vector := make([]float32, DefaultVectorSize+10)
 
 		// Append should fail
-		_, err = v.Append(vector)
+		err = v.Append(0, vector)
 		if err == nil {
 			t.Error("expected error for invalid vector length, got nil")
 		}
@@ -95,14 +90,9 @@ func TestAppend(t *testing.T) {
 				vectors[i][j] = float32(i*100 + j)
 			}
 
-			idx, err := v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
-			}
-
-			// Verify index
-			if idx != i {
-				t.Errorf("vector %d: expected index %d, got %d", i, i, idx)
 			}
 
 			// Check buffer state based on position
@@ -203,7 +193,7 @@ func TestAppend(t *testing.T) {
 		for i := range vector1 {
 			vector1[i] = float32(i)
 		}
-		_, err = v.Append(vector1)
+		err = v.Append(0, vector1)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
 		}
@@ -218,7 +208,7 @@ func TestAppend(t *testing.T) {
 		for i := range vector2 {
 			vector2[i] = float32(i * 2)
 		}
-		_, err = v.Append(vector2)
+		err = v.Append(1, vector2)
 		if err != nil {
 			t.Fatalf("failed to append second vector: %v", err)
 		}
@@ -244,7 +234,7 @@ func TestAppend(t *testing.T) {
 		for i := range vector3 {
 			vector3[i] = float32(i * 3)
 		}
-		_, err = v.Append(vector3)
+		err = v.Append(2, vector3)
 		if err != nil {
 			t.Fatalf("failed to append third vector: %v", err)
 		}
@@ -260,7 +250,7 @@ func TestAppend(t *testing.T) {
 			for i := range vector {
 				vector[i] = float32(i * k)
 			}
-			_, err = v.Append(vector)
+			err = v.Append(k-1, vector)
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", k, err)
 			}
@@ -286,7 +276,7 @@ func TestAppend(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*50 + j)
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -324,12 +314,9 @@ func TestAppend(t *testing.T) {
 		for i := range vector1 {
 			vector1[i] = float32(i)
 		}
-		idx1, err := v1.Append(vector1)
+		err = v1.Append(0, vector1)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
-		}
-		if idx1 != 0 {
-			t.Errorf("expected index 0, got %d", idx1)
 		}
 
 		err = v1.Flush()
@@ -360,16 +347,9 @@ func TestAppend(t *testing.T) {
 		for i := range vector2 {
 			vector2[i] = float32(i * 2)
 		}
-		idx2, err := v2.Append(vector2)
+		err = v2.Append(1, vector2)
 		if err != nil {
 			t.Fatalf("failed to append vector after reopen: %v", err)
-		}
-
-		// The index should be 1 (second vector)
-		// index = persistedSize + len(appendBuffer) - 1 = 1 + 1 - 1 = 1
-		expectedIdx := v2.persistedSize + len(v2.appendBuffer) - 1
-		if idx2 != expectedIdx {
-			t.Errorf("expected index %d, got %d", expectedIdx, idx2)
 		}
 
 		// Verify first vector can be retrieved
@@ -383,10 +363,10 @@ func TestAppend(t *testing.T) {
 			}
 		}
 
-		// The second vector should be retrievable at its returned index
-		retrieved2, err := v2.Get(idx2)
+		// The second vector should be retrievable at index 1
+		retrieved2, err := v2.Get(1)
 		if err != nil {
-			t.Fatalf("failed to get second vector at index %d: %v", idx2, err)
+			t.Fatalf("failed to get second vector at index 1: %v", err)
 		}
 		for i := range vector2 {
 			if retrieved2[i] != vector2[i] {

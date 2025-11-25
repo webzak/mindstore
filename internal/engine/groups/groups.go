@@ -2,7 +2,6 @@ package groups
 
 import (
 	"encoding/gob"
-	"errors"
 	"fmt"
 	"sort"
 
@@ -97,9 +96,7 @@ func (g *Groups) load() error {
 
 // Flush saves groups to storage
 func (g *Groups) Flush() error {
-	if !g.isLoaded {
-		return errors.New("groups are not loaded")
-	}
+
 	if g.isPersisted {
 		return nil
 	}

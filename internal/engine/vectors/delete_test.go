@@ -24,7 +24,7 @@ func TestDelete(t *testing.T) {
 		for i := range vector {
 			vector[i] = float32(i)
 		}
-		_, err = v.Append(vector)
+		err = v.Append(0, vector)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
 		}
@@ -54,7 +54,7 @@ func TestDelete(t *testing.T) {
 
 		// Append and flush a vector
 		vector := make([]float32, DefaultVectorSize)
-		_, err = v.Append(vector)
+		err = v.Append(0, vector)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
 		}
@@ -83,7 +83,7 @@ func TestDelete(t *testing.T) {
 			for j := range vector {
 				vector[j] = float32(i*100 + j)
 			}
-			_, err = v.Append(vector)
+			err = v.Append(i, vector)
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -120,7 +120,7 @@ func TestDelete(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*100 + j)
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -173,7 +173,7 @@ func TestDelete(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*100 + j)
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -225,7 +225,7 @@ func TestDelete(t *testing.T) {
 			for j := range vector {
 				vector[j] = float32(i*100 + j)
 			}
-			_, err = v.Append(vector)
+			err = v.Append(i, vector)
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -272,7 +272,7 @@ func TestDelete(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*100 + j)
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -288,7 +288,7 @@ func TestDelete(t *testing.T) {
 			for j := range vector {
 				vector[j] = float32(i*100 + j)
 			}
-			_, err = v.Append(vector)
+			err = v.Append(i, vector)
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -340,7 +340,7 @@ func TestDelete(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*100 + j)
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -393,7 +393,7 @@ func TestDelete(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*100 + j)
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -446,7 +446,7 @@ func TestDelete(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*100 + j)
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -499,7 +499,7 @@ func TestDelete(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*100 + j)
 			}
-			_, err = v1.Append(vectors[i])
+			err = v1.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -564,7 +564,7 @@ func TestDelete(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*50 + j)
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -618,7 +618,7 @@ func TestDelete(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*100 + j)
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -671,7 +671,7 @@ func TestDelete(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*100 + j)
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -724,7 +724,7 @@ func TestDelete(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*100 + j)
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -752,7 +752,7 @@ func TestDelete(t *testing.T) {
 			for j := range newVectors[i] {
 				newVectors[i][j] = float32(9999 + i)
 			}
-			_, err = v.Append(newVectors[i])
+			err = v.Append(i+3, newVectors[i])
 			if err != nil {
 				t.Fatalf("failed to append new vector %d: %v", i, err)
 			}
@@ -814,7 +814,7 @@ func TestDelete(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*100 + j)
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}

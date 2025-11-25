@@ -86,12 +86,14 @@ func (t *Tags) load() error {
 	return nil
 }
 
+// IsPersisted
+func (t *Tags) IsPersisted() bool {
+	return t.isPersisted
+}
+
 // Flush saves tags to storage
 func (t *Tags) Flush() error {
 
-	if !t.isLoaded {
-		return errors.New("tags are not loaded")
-	}
 	if t.isPersisted {
 		return nil
 	}

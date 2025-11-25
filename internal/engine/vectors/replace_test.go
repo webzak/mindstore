@@ -24,14 +24,14 @@ func TestReplace(t *testing.T) {
 		for i := range vector {
 			vector[i] = float32(i)
 		}
-		idx, err := v.Append(vector)
+		err = v.Append(0, vector)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
 		}
 
 		// Try to replace with wrong size
 		wrongSizeVector := make([]float32, DefaultVectorSize+10)
-		err = v.Replace(idx, wrongSizeVector)
+		err = v.Replace(0, wrongSizeVector)
 		if err == nil {
 			t.Error("expected error for invalid vector length, got nil")
 		}
@@ -60,7 +60,7 @@ func TestReplace(t *testing.T) {
 
 		// Append one vector
 		vector := make([]float32, DefaultVectorSize)
-		_, err = v.Append(vector)
+		err = v.Append(0, vector)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
 		}
@@ -85,7 +85,7 @@ func TestReplace(t *testing.T) {
 		for i := range originalVector {
 			originalVector[i] = float32(i)
 		}
-		idx, err := v.Append(originalVector)
+		err = v.Append(0, originalVector)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
 		}
@@ -104,13 +104,13 @@ func TestReplace(t *testing.T) {
 		for i := range newVector {
 			newVector[i] = float32(i * 10)
 		}
-		err = v.Replace(idx, newVector)
+		err = v.Replace(0, newVector)
 		if err != nil {
 			t.Fatalf("failed to replace vector: %v", err)
 		}
 
 		// Retrieve and verify the replacement
-		retrieved, err := v.Get(idx)
+		retrieved, err := v.Get(0)
 		if err != nil {
 			t.Fatalf("failed to get vector: %v", err)
 		}
@@ -140,7 +140,7 @@ func TestReplace(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*100 + j)
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -206,7 +206,7 @@ func TestReplace(t *testing.T) {
 		for i := range originalVector {
 			originalVector[i] = float32(i)
 		}
-		idx, err := v.Append(originalVector)
+		err = v.Append(0, originalVector)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
 		}
@@ -224,7 +224,7 @@ func TestReplace(t *testing.T) {
 		for i := range newVector {
 			newVector[i] = float32(i * 20)
 		}
-		err = v.Replace(idx, newVector)
+		err = v.Replace(0, newVector)
 		if err != nil {
 			t.Fatalf("failed to replace vector: %v", err)
 		}
@@ -238,7 +238,7 @@ func TestReplace(t *testing.T) {
 		}
 
 		// Retrieve and verify the replacement
-		retrieved, err := v.Get(idx)
+		retrieved, err := v.Get(0)
 		if err != nil {
 			t.Fatalf("failed to get vector: %v", err)
 		}
@@ -263,7 +263,7 @@ func TestReplace(t *testing.T) {
 			for j := range vectors[i] {
 				vectors[i][j] = float32(i*50 + j)
 			}
-			_, err = v.Append(vectors[i])
+			err = v.Append(i, vectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -330,7 +330,7 @@ func TestReplace(t *testing.T) {
 		for i := range originalVector {
 			originalVector[i] = float32(i)
 		}
-		idx, err := v1.Append(originalVector)
+		err = v1.Append(0, originalVector)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
 		}
@@ -344,7 +344,7 @@ func TestReplace(t *testing.T) {
 		for i := range newVector {
 			newVector[i] = float32(i * 100)
 		}
-		err = v1.Replace(idx, newVector)
+		err = v1.Replace(0, newVector)
 		if err != nil {
 			t.Fatalf("failed to replace vector: %v", err)
 		}
@@ -356,7 +356,7 @@ func TestReplace(t *testing.T) {
 		}
 
 		// Verify the replacement persisted
-		retrieved, err := v2.Get(idx)
+		retrieved, err := v2.Get(0)
 		if err != nil {
 			t.Fatalf("failed to get vector after reopen: %v", err)
 		}
@@ -386,7 +386,7 @@ func TestReplace(t *testing.T) {
 			for j := range persistedVectors[i] {
 				persistedVectors[i][j] = float32(i*100 + j)
 			}
-			_, err = v.Append(persistedVectors[i])
+			err = v.Append(i, persistedVectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i, err)
 			}
@@ -403,7 +403,7 @@ func TestReplace(t *testing.T) {
 			for j := range appendVectors[i] {
 				appendVectors[i][j] = float32((i+5)*100 + j)
 			}
-			_, err = v.Append(appendVectors[i])
+			err = v.Append(5+i, appendVectors[i])
 			if err != nil {
 				t.Fatalf("failed to append vector %d: %v", i+5, err)
 			}
@@ -497,7 +497,7 @@ func TestReplace(t *testing.T) {
 		for i := range originalVector {
 			originalVector[i] = float32(i)
 		}
-		idx, err := v.Append(originalVector)
+		err = v.Append(0, originalVector)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
 		}
@@ -511,13 +511,13 @@ func TestReplace(t *testing.T) {
 		for i := range newVector {
 			newVector[i] = float32(i * 5)
 		}
-		err = v.Replace(idx, newVector)
+		err = v.Replace(0, newVector)
 		if err != nil {
 			t.Fatalf("failed to replace vector: %v", err)
 		}
 
 		// Verify the replacement
-		retrieved, err := v.Get(idx)
+		retrieved, err := v.Get(0)
 		if err != nil {
 			t.Fatalf("failed to get vector: %v", err)
 		}
@@ -543,7 +543,7 @@ func TestReplace(t *testing.T) {
 		for i := range originalVector {
 			originalVector[i] = float32(i)
 		}
-		idx, err := v.Append(originalVector)
+		err = v.Append(0, originalVector)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
 		}
@@ -558,13 +558,13 @@ func TestReplace(t *testing.T) {
 			for i := range newVector {
 				newVector[i] = float32(iteration * 1000)
 			}
-			err = v.Replace(idx, newVector)
+			err = v.Replace(0, newVector)
 			if err != nil {
 				t.Fatalf("failed to replace vector (iteration %d): %v", iteration, err)
 			}
 
 			// Verify the replacement
-			retrieved, err := v.Get(idx)
+			retrieved, err := v.Get(0)
 			if err != nil {
 				t.Fatalf("failed to get vector (iteration %d): %v", iteration, err)
 			}

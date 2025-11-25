@@ -39,6 +39,13 @@ type IndexOptions struct {
 	MaxAppendBufferSize int
 }
 
+// DefaultIndexOptions
+func DefaultIndexOptions() IndexOptions {
+	return IndexOptions{
+		MaxAppendBufferSize: DefaultMaxAppendBufferSize,
+	}
+}
+
 // Index is the data index
 type Index struct {
 	// storage is the storage for index records

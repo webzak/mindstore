@@ -99,7 +99,7 @@ func TestNew(t *testing.T) {
 		for i := range vector {
 			vector[i] = float32(i)
 		}
-		_, err = v1.Append(vector)
+		err = v1.Append(0, vector)
 		if err != nil {
 			t.Fatalf("failed to append vector: %v", err)
 		}

@@ -32,6 +32,15 @@ type VectorsOptions struct {
 	MaxAppendBufferSize int
 }
 
+// DefaultVectorOptions return vector defaults
+func DefaultVectorsOptions() VectorsOptions {
+	return VectorsOptions{
+		VectorSize:          DefaultVectorSize,
+		MaxBufferSize:       DefaultMaxBufferSize,
+		MaxAppendBufferSize: DefaultMaxAppendBufferSize,
+	}
+}
+
 // Vectors represents the fixed-size vector storage
 type Vectors struct {
 	storage *storage.File
@@ -160,24 +169,30 @@ func (v *Vectors) Get(index int) ([]float32, error) {
 }
 
 // Append appends a vector
-func (v *Vectors) Append(vector []float32) (int, error) {
+func (v *Vectors) Append(index int, vector []float32) error {
 	if len(vector) != v.vectorSize {
-		return 0, fmt.Errorf("invalid vector length: expected %d, got %d", v.vectorSize, len(vector))
+		return fmt.Errorf("invalid vector length: expected %d, got %d", v.vectorSize, len(vector))
 	}
 
+	// calculate expected index before appending
+	expectedIndex := v.persistedSize + len(v.appendBuffer)
+
+	// verify index integrity
+	if index != expectedIndex {
+		return fmt.Errorf("index integrity error: expected %d, got %d", expectedIndex, index)
+	}
 	// add to append buffer
 	v.appendBuffer = append(v.appendBuffer, vector)
-	index := v.persistedSize + len(v.appendBuffer) - 1
 
 	// if append buffer is full flush to storage
 	if len(v.appendBuffer) >= v.maxAppendSize {
 		if err := v.Flush(); err != nil {
-			return 0, err
+			return err
 		}
 	}
 
 	// return the index of appended vector and error if any
-	return index, nil
+	return nil
 }
 
 // Replace replaces a vector at the given index
