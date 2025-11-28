@@ -3,14 +3,14 @@ package index
 import (
 	"errors"
 	"fmt"
-	"io"
+	"iter"
 
 	"github.com/webzak/mindstore/internal/engine/conv"
 	"github.com/webzak/mindstore/internal/engine/storage"
 )
 
 const (
-	rowSize                          = conv.Int64Size * 2
+	rowSize                          = conv.Int64Size * 5
 	DefaultMaxAppendBufferSize       = 64
 	MarkedForRemoval           uint8 = 1 << 0
 )
@@ -24,14 +24,20 @@ type Row struct {
 	// Offset is the shift from start in bytes
 	Offset int64
 	// Size is the data length in bytes
-	Size int32
-	// Type is the type of data text, image, video, audio.. (data.Type)
-	Type uint8
+	Size int64
+	// Offset is the shift from start in bytes
+	MetaOffset int64
+	// Size is the data length in bytes
+	MetaSize int64
+	// DataDescriptor is the type of data, enginge agnostic
+	DataDescriptor uint8
+	// MetaDataDescriptior is the type of metadata
+	MetaDataDescriptor uint8
 	// Flags are bit options
 	Flags uint8
 	// Reserved space to align the size
-	Reserved1 uint8
-	Reserved2 uint8
+	reserved1 uint8
+	reserved2 uint32
 }
 
 // IndexOptions are options for index
@@ -103,9 +109,12 @@ func (idx *Index) load() error {
 			return fmt.Errorf("%w: expected %d, actual %d", storage.ErrFileRead, rowSize, n)
 		}
 		idx.rows[i].Offset = conv.BytesToInt64(buf[:conv.Int64Size])
-		idx.rows[i].Size = conv.BytesToInt32(buf[conv.Int64Size : conv.Int64Size+conv.Int32Size])
-		idx.rows[i].Type = buf[conv.Int64Size+conv.Int32Size]
-		idx.rows[i].Flags = buf[conv.Int64Size+conv.Int32Size+1]
+		idx.rows[i].Size = conv.BytesToInt64(buf[conv.Int64Size : conv.Int64Size*2])
+		idx.rows[i].MetaOffset = conv.BytesToInt64(buf[conv.Int64Size*2 : conv.Int64Size*3])
+		idx.rows[i].MetaSize = conv.BytesToInt64(buf[conv.Int64Size*3 : conv.Int64Size*4])
+		idx.rows[i].DataDescriptor = buf[conv.Int64Size*4]
+		idx.rows[i].MetaDataDescriptor = buf[conv.Int64Size*4+1]
+		idx.rows[i].Flags = buf[conv.Int64Size*4+2]
 	}
 	idx.persistedSize = len(idx.rows)
 	return nil
@@ -135,9 +144,12 @@ func (idx *Index) Flush() error {
 		row := idx.rows[i]
 		buf := make([]byte, rowSize)
 		conv.Int64ToBytes(row.Offset, buf[:conv.Int64Size])
-		conv.Int32ToBytes(row.Size, buf[conv.Int64Size:conv.Int64Size+conv.Int32Size])
-		buf[conv.Int64Size+conv.Int32Size] = row.Type
-		buf[conv.Int64Size+conv.Int32Size+1] = row.Flags
+		conv.Int64ToBytes(row.Size, buf[conv.Int64Size:conv.Int64Size*2])
+		conv.Int64ToBytes(row.MetaOffset, buf[conv.Int64Size*2:conv.Int64Size*3])
+		conv.Int64ToBytes(row.MetaSize, buf[conv.Int64Size*3:conv.Int64Size*4])
+		buf[conv.Int64Size*4] = row.DataDescriptor
+		buf[conv.Int64Size*4+1] = row.MetaDataDescriptor
+		buf[conv.Int64Size*4+2] = row.Flags
 		_, err := appender.Write(buf)
 		if err != nil {
 			return err
@@ -158,8 +170,9 @@ func (idx *Index) Get(n int) (Row, error) {
 }
 
 // Append adds new index record and flushes if buffer is full
-func (idx *Index) Append(row Row) error {
+func (idx *Index) Append(row Row) (int, error) {
 	idx.rows = append(idx.rows, row)
+	id := len(idx.rows) - 1
 
 	// Calculate the number of unsaved rows
 	unsavedCount := len(idx.rows) - idx.persistedSize
@@ -167,10 +180,9 @@ func (idx *Index) Append(row Row) error {
 	// Special case: maxAppendBufferSize = 0 means immediate saving
 	// Otherwise, flush when unsaved count reaches the buffer size
 	if unsavedCount >= idx.maxAppendBufferSize {
-		return idx.Flush()
+		return id, idx.Flush()
 	}
-
-	return nil
+	return id, nil
 }
 
 // Replace replaces the index record by number
@@ -201,9 +213,12 @@ func (idx *Index) updatePersistedRow(n int) error {
 		row := idx.rows[n]
 		buf := make([]byte, rowSize)
 		conv.Int64ToBytes(row.Offset, buf[:conv.Int64Size])
-		conv.Int32ToBytes(row.Size, buf[conv.Int64Size:conv.Int64Size+conv.Int32Size])
-		buf[conv.Int64Size+conv.Int32Size] = row.Type
-		buf[conv.Int64Size+conv.Int32Size+1] = row.Flags
+		conv.Int64ToBytes(row.Size, buf[conv.Int64Size:conv.Int64Size*2])
+		conv.Int64ToBytes(row.MetaOffset, buf[conv.Int64Size*2:conv.Int64Size*3])
+		conv.Int64ToBytes(row.MetaSize, buf[conv.Int64Size*3:conv.Int64Size*4])
+		buf[conv.Int64Size*4] = row.DataDescriptor
+		buf[conv.Int64Size*4+1] = row.MetaDataDescriptor
+		buf[conv.Int64Size*4+2] = row.Flags
 
 		_, err = writer.Write(buf)
 		if err != nil {
@@ -291,29 +306,20 @@ func (idx *Index) Optimise() error {
 	return idx.Flush()
 }
 
-// Iterator is an iterator over index rows
-type Iterator struct {
-	idx      *Index
-	position int
-}
-
-// Iterator creates a new iterator over index rows
-func (idx *Index) Iterator() *Iterator {
-	return &Iterator{
-		idx:      idx,
-		position: 0,
+// Iterator returns an iterator over index rows that yields (position, row) pairs.
+// This uses Go 1.23's iter.Seq2 for idiomatic range-over-function iteration.
+//
+// Example usage:
+//
+//	for pos, row := range idx.Iterator() {
+//	    // use pos and row
+//	}
+func (idx *Index) Iterator() iter.Seq2[int, *Row] {
+	return func(yield func(int, *Row) bool) {
+		for i := range idx.rows {
+			if !yield(i, &idx.rows[i]) {
+				return
+			}
+		}
 	}
-}
-
-// Next returns the next row and error
-// Returns nil and io.EOF when iteration is complete
-func (it *Iterator) Next() (*Row, error) {
-	if it.position >= len(it.idx.rows) {
-		return nil, io.EOF
-	}
-
-	row := it.idx.rows[it.position]
-	it.position++
-
-	return &row, nil
 }

@@ -262,6 +262,22 @@ func (t *Tags) Remove(id int, tag string) error {
 	return nil
 }
 
+// RemoveAll removes all tags associated with an ID
+func (t *Tags) RemoveAll(id int) error {
+	tags, err := t.GetTags(id)
+	if err != nil {
+		return err
+	}
+
+	for _, tag := range tags {
+		if err := t.Remove(id, tag); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // GetAllTags returns all unique tags in the system
 func (t *Tags) GetAllTags() ([]string, error) {
 

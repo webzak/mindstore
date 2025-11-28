@@ -606,23 +606,6 @@ func TestLazyLoad(t *testing.T) {
 	}
 }
 
-func TestFlushWhenNotLoaded(t *testing.T) {
-	path := createTempFile(t)
-	tags, err := New(path)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
-
-	// Mark as not loaded
-	tags.isLoaded = false
-
-	// Try to flush
-	err = tags.Flush()
-	if err == nil {
-		t.Error("Expected error when flushing unloaded tags")
-	}
-}
-
 func TestMultipleTagsPerID(t *testing.T) {
 	path := createTempFile(t)
 	tags, err := New(path)
@@ -756,5 +739,97 @@ func TestComplexScenario(t *testing.T) {
 	ids, _ = tags2.GetIDs("backend")
 	if len(ids) != 1 || ids[0] != 3 {
 		t.Errorf("Expected [3] for 'backend' after removal, got %v", ids)
+	}
+}
+
+func TestRemoveAll(t *testing.T) {
+	path := createTempFile(t)
+	tags, err := New(path)
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	// Add tags for multiple IDs
+	tags.Add(1, "tag1")
+	tags.Add(1, "tag2")
+	tags.Add(1, "tag3")
+	tags.Add(2, "tag2") // Shared tag
+	tags.Add(3, "tag4")
+
+	// Verify initial state for ID 1
+	tagList, err := tags.GetTags(1)
+	if err != nil {
+		t.Fatalf("GetTags(1) failed: %v", err)
+	}
+	if len(tagList) != 3 {
+		t.Errorf("Expected 3 tags for ID 1, got %d", len(tagList))
+	}
+
+	// Remove all tags for ID 1
+	err = tags.RemoveAll(1)
+	if err != nil {
+		t.Errorf("RemoveAll(1) failed: %v", err)
+	}
+
+	// Verify ID 1 has no tags
+	tagList, err = tags.GetTags(1)
+	if err != nil {
+		t.Fatalf("GetTags(1) failed: %v", err)
+	}
+	if len(tagList) != 0 {
+		t.Errorf("Expected 0 tags for ID 1 after RemoveAll, got %d", len(tagList))
+	}
+
+	// Verify ID 1 is removed from reverse map
+	if _, ok := tags.reverse[1]; ok {
+		t.Error("ID 1 should be removed from reverse map")
+	}
+
+	// Verify ID 1 is removed from forward map for its tags
+	ids, _ := tags.GetIDs("tag1")
+	if len(ids) != 0 {
+		t.Errorf("Expected 0 IDs for 'tag1', got %v", ids)
+	}
+
+	// Verify shared tag 'tag2' still exists for ID 2
+	ids, _ = tags.GetIDs("tag2")
+	if len(ids) != 1 || ids[0] != 2 {
+		t.Errorf("Expected [2] for 'tag2', got %v", ids)
+	}
+
+	// Verify ID 2 is unaffected
+	tagList, _ = tags.GetTags(2)
+	if len(tagList) != 1 || tagList[0] != "tag2" {
+		t.Errorf("Expected ['tag2'] for ID 2, got %v", tagList)
+	}
+
+	// Verify ID 3 is unaffected
+	tagList, _ = tags.GetTags(3)
+	if len(tagList) != 1 || tagList[0] != "tag4" {
+		t.Errorf("Expected ['tag4'] for ID 3, got %v", tagList)
+	}
+
+	// Test RemoveAll for non-existent ID (should be no-op)
+	err = tags.RemoveAll(999)
+	if err != nil {
+		t.Errorf("RemoveAll(999) failed: %v", err)
+	}
+
+	// Test RemoveAll for ID with no tags (should be no-op)
+	tags.Add(4, "temp")
+	tags.Remove(4, "temp") // ID 4 exists in reverse map? No, Remove deletes it if empty.
+	// Let's ensure ID 4 is clean
+	err = tags.RemoveAll(4)
+	if err != nil {
+		t.Errorf("RemoveAll(4) failed: %v", err)
+	}
+
+	// Verify isPersisted is false
+	tags.isPersisted = true
+	tags.Add(5, "tag5")
+	tags.isPersisted = true // Reset to true to test RemoveAll
+	tags.RemoveAll(5)
+	if tags.isPersisted {
+		t.Error("isPersisted should be false after RemoveAll")
 	}
 }

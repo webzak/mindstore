@@ -5,20 +5,8 @@ import (
 	"os"
 )
 
-// Config defines the configuration for a collection
-type Config struct {
-	// MaxVectorAppendBufferSize max buffer for index to be unsynced
-	MaxIndexAppendBufferSize int `json:"max_index_append_buffer_size,omitempty"`
-	// VectorSize is the size of the float32 vector
-	VectorSize int `json:"vector_size,omitempty"`
-	// MaxVectorBufferSize is the maximum amount of vectors in memory buffer
-	MaxVectorBufferSize int `json:"max_vector_buffer_size,omitempty"`
-	// MaxAppendBufferSize is the maximum amount of appended vectors which triggers flush
-	MaxVectorAppendBufferSize int `json:"max_vector_append_buffer_size,omitempty"`
-}
-
 // saveConfig saves the collection configuration as JSON
-func saveConfig(path string, config Config) error {
+func saveConfig(path string, config DatasetConfig) error {
 	f, err := os.Create(path)
 	if err != nil {
 		return err
@@ -35,8 +23,8 @@ func saveConfig(path string, config Config) error {
 }
 
 // loadConfig loads the collection configuration from JSON
-func loadConfig(path string) (Config, error) {
-	var config Config
+func loadConfig(path string) (DatasetConfig, error) {
+	var config DatasetConfig
 
 	f, err := os.Open(path)
 	if err != nil {

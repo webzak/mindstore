@@ -3,12 +3,9 @@ package db
 import "strings"
 
 // AddTag adds one or more tags to the specified record ID
-func (c *Collection) AddTags(id int, tags ...string) error {
-	if c.tags == nil {
-		return ErrTagsNotEnabled
-	}
+func (c *Dataset) AddTags(id int, tags ...string) error {
 	if id < 0 || id >= c.index.Count() {
-		return ErrInvalidID
+		return ErrInvalidRecordID
 	}
 	for _, tag := range tags {
 		c.tags.Add(id, tag)
@@ -17,12 +14,9 @@ func (c *Collection) AddTags(id int, tags ...string) error {
 }
 
 // RemoveTag removes one or more tags from the specified record ID
-func (c *Collection) RemoveTags(id int, tags ...string) error {
-	if c.tags == nil {
-		return ErrTagsNotEnabled
-	}
+func (c *Dataset) RemoveTags(id int, tags ...string) error {
 	if id < 0 || id >= c.index.Count() {
-		return ErrInvalidID
+		return ErrInvalidRecordID
 	}
 	for _, tag := range tags {
 		c.tags.Remove(id, tag)
@@ -32,10 +26,7 @@ func (c *Collection) RemoveTags(id int, tags ...string) error {
 
 // GetIDsByTag returns all record IDs that have the specified tag
 // The tag search is case-insensitive
-func (c *Collection) GetIDsByTag(tag string) ([]int, error) {
-	if c.tags == nil {
-		return nil, ErrTagsNotEnabled
-	}
+func (c *Dataset) GetIDsByTag(tag string) ([]int, error) {
 	tag = strings.ToLower(tag)
 	ids, err := c.tags.GetIDs(tag)
 	if err != nil {
@@ -48,12 +39,9 @@ func (c *Collection) GetIDsByTag(tag string) ([]int, error) {
 }
 
 // GetTagsByID returns all tags associated with the specified record ID
-func (c *Collection) GetTagsByID(id int) ([]string, error) {
-	if c.tags == nil {
-		return nil, ErrTagsNotEnabled
-	}
+func (c *Dataset) GetTagsByID(id int) ([]string, error) {
 	if id < 0 || id >= c.index.Count() {
-		return nil, ErrInvalidID
+		return nil, ErrInvalidRecordID
 	}
 	tags, err := c.tags.GetTags(id)
 	if err != nil {

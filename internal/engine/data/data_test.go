@@ -26,7 +26,7 @@ func TestData(t *testing.T) {
 	if off1 != 0 {
 		t.Errorf("expected offset 0, got %d", off1)
 	}
-	if len1 != int32(len(data1)) {
+	if len1 != int64(len(data1)) {
 		t.Errorf("expected length %d, got %d", len(data1), len1)
 	}
 
@@ -38,7 +38,7 @@ func TestData(t *testing.T) {
 	if off2 != int64(len(data1)) {
 		t.Errorf("expected offset %d, got %d", len(data1), off2)
 	}
-	if len2 != int32(len(data2)) {
+	if len2 != int64(len(data2)) {
 		t.Errorf("expected length %d, got %d", len(data2), len2)
 	}
 
@@ -93,5 +93,106 @@ func TestDataPersistence(t *testing.T) {
 	}
 	if !bytes.Equal(read, data) {
 		t.Errorf("expected %s, got %s", data, read)
+	}
+}
+
+func TestAppendEmptySlice(t *testing.T) {
+	dir := testutil.MakeTempDir(t)
+	path := filepath.Join(dir, "data_empty.bin")
+
+	d, err := New(path)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	// Append empty slice
+	offset, length, err := d.Append([]byte{})
+	if err != nil {
+		t.Fatalf("Append() error = %v, want nil", err)
+	}
+	if offset != -1 {
+		t.Errorf("Append([]byte{}) offset = %d, want -1", offset)
+	}
+	if length != 0 {
+		t.Errorf("Append([]byte{}) length = %d, want 0", length)
+	}
+}
+
+func TestAppendNil(t *testing.T) {
+	dir := testutil.MakeTempDir(t)
+	path := filepath.Join(dir, "data_nil.bin")
+
+	d, err := New(path)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	// Append nil
+	offset, length, err := d.Append(nil)
+	if err != nil {
+		t.Fatalf("Append() error = %v, want nil", err)
+	}
+	if offset != -1 {
+		t.Errorf("Append(nil) offset = %d, want -1", offset)
+	}
+	if length != 0 {
+		t.Errorf("Append(nil) length = %d, want 0", length)
+	}
+}
+
+func TestReadNegativeOffset(t *testing.T) {
+	dir := testutil.MakeTempDir(t)
+	path := filepath.Join(dir, "data_read_neg.bin")
+
+	d, err := New(path)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	// Read with negative offset
+	data, err := d.Read(-1, 0)
+	if err != nil {
+		t.Fatalf("Read(-1, 0) error = %v, want nil", err)
+	}
+	if data == nil {
+		t.Error("Read(-1, 0) returned nil, want empty slice")
+	}
+	if len(data) != 0 {
+		t.Errorf("Read(-1, 0) length = %d, want 0", len(data))
+	}
+}
+
+func TestAppendAndReadEmpty(t *testing.T) {
+	dir := testutil.MakeTempDir(t)
+	path := filepath.Join(dir, "data_roundtrip.bin")
+
+	d, err := New(path)
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	// Append some real data first
+	realData := []byte("real data")
+	_, _, err = d.Append(realData)
+	if err != nil {
+		t.Fatalf("Append(realData) error = %v", err)
+	}
+
+	// Append empty data
+	emptyOffset, emptyLength, err := d.Append([]byte{})
+	if err != nil {
+		t.Fatalf("Append(empty) error = %v", err)
+	}
+
+	// Read back the empty data using the returned offset
+	readData, err := d.Read(emptyOffset, emptyLength)
+	if err != nil {
+		t.Fatalf("Read() error = %v", err)
+	}
+	if readData == nil {
+		t.Error("Read() returned nil, want empty slice")
+	}
+	if len(readData) != 0 {
+		t.Errorf("Read() length = %d, want 0", len(readData))
 	}
 }

@@ -3,10 +3,11 @@ package vectors
 import (
 	"fmt"
 	"io"
-	"slices"
+	"iter"
+
+	//"slices"
 
 	"github.com/webzak/mindstore/internal/engine/conv"
-	"github.com/webzak/mindstore/internal/engine/math"
 	"github.com/webzak/mindstore/internal/engine/storage"
 )
 
@@ -314,103 +315,103 @@ func (v *Vectors) Delete(indexes []int) error {
 
 // Search performs similarity search on the vectors using the specified method
 // Returns a slice of Distance structs where ID is the vector index
-func (v *Vectors) Search(vector []float32, method math.VectorSearchMethod, sortOrder math.SortOrder, limit int) ([]math.Distance, error) {
-	if len(vector) != v.vectorSize {
-		return nil, fmt.Errorf("invalid vector length: expected %d, got %d", v.vectorSize, len(vector))
-	}
+// func (v *Vectors) Search(vector []float32, method math.VectorSearchMethod, sortOrder math.SortOrder, limit int) ([]math.Distance, error) {
+// 	if len(vector) != v.vectorSize {
+// 		return nil, fmt.Errorf("invalid vector length: expected %d, got %d", v.vectorSize, len(vector))
+// 	}
 
-	if limit < 0 {
-		return nil, fmt.Errorf("invalid limit: expected positive, got %d", limit)
-	}
+// 	if limit < 0 {
+// 		return nil, fmt.Errorf("invalid limit: expected positive, got %d", limit)
+// 	}
 
-	// Select the appropriate ranking function based on the search method
-	var rankFunc math.RankingFunc
-	switch method {
-	case math.CosineSimMethod:
-		rankFunc = math.CosineSimRanking
-	default:
-		return nil, fmt.Errorf("unsupported search method: %d", method)
-	}
+// 	// Select the appropriate ranking function based on the search method
+// 	var rankFunc math.RankingFunc
+// 	switch method {
+// 	case math.CosineSimMethod:
+// 		rankFunc = math.CosineSimRanking
+// 	default:
+// 		return nil, fmt.Errorf("unsupported search method: %d", method)
+// 	}
 
-	return v.search(vector, rankFunc, sortOrder, limit)
-}
+// 	return v.search(vector, rankFunc, sortOrder, limit)
+// }
 
 // search performs similarity search across all vectors using the provided ranking function
 // It processes persisted vectors in chunks and includes appendBuffer vectors
-func (v *Vectors) search(vector []float32, rankFunc math.RankingFunc, sortOrder math.SortOrder, limit int) ([]math.Distance, error) {
-	allResults := make([]math.Distance, 0)
+// func (v *Vectors) search(vector []float32, rankFunc math.RankingFunc, sortOrder math.SortOrder, limit int) ([]math.Distance, error) {
+// 	allResults := make([]math.Distance, 0)
 
-	// Process persisted vectors in chunks
-	offset := 0
-	for offset < v.persistedSize {
-		// Check if we need to load a new chunk into v.buffer
-		// Skip loading if buffer is already at the correct offset with data
-		if !(v.buffer.start == offset && len(v.buffer.rows) > 0) {
-			// Determine chunk size
-			chunkSize := v.maxBufferSize
-			if offset+chunkSize > v.persistedSize {
-				chunkSize = v.persistedSize - offset
-			}
+// 	// Process persisted vectors in chunks
+// 	offset := 0
+// 	for offset < v.persistedSize {
+// 		// Check if we need to load a new chunk into v.buffer
+// 		// Skip loading if buffer is already at the correct offset with data
+// 		if !(v.buffer.start == offset && len(v.buffer.rows) > 0) {
+// 			// Determine chunk size
+// 			chunkSize := v.maxBufferSize
+// 			if offset+chunkSize > v.persistedSize {
+// 				chunkSize = v.persistedSize - offset
+// 			}
 
-			// Load chunk from storage into v.buffer
-			var err error
-			v.buffer, err = v.loadBuffer(offset, chunkSize)
-			if err != nil {
-				return nil, fmt.Errorf("failed to load buffer at offset %d: %w", offset, err)
-			}
-		}
+// 			// Load chunk from storage into v.buffer
+// 			var err error
+// 			v.buffer, err = v.loadBuffer(offset, chunkSize)
+// 			if err != nil {
+// 				return nil, fmt.Errorf("failed to load buffer at offset %d: %w", offset, err)
+// 			}
+// 		}
 
-		// Calculate similarity/distance for this chunk using the provided ranking function
-		chunkResults, err := rankFunc(v.buffer.rows, vector, sortOrder, 0)
-		if err != nil {
-			return nil, err
-		}
+// 		// Calculate similarity/distance for this chunk using the provided ranking function
+// 		chunkResults, err := rankFunc(v.buffer.rows, vector, sortOrder, 0)
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		// Adjust IDs to account for offset
-		for i := range chunkResults {
-			chunkResults[i].ID += offset
-		}
+// 		// Adjust IDs to account for offset
+// 		for i := range chunkResults {
+// 			chunkResults[i].ID += offset
+// 		}
 
-		// Accumulate results
-		allResults = append(allResults, chunkResults...)
+// 		// Accumulate results
+// 		allResults = append(allResults, chunkResults...)
 
-		offset += len(v.buffer.rows)
-	}
+// 		offset += len(v.buffer.rows)
+// 	}
 
-	// Process appendBuffer if not empty
-	if len(v.appendBuffer) > 0 {
-		appendResults, err := rankFunc(v.appendBuffer, vector, sortOrder, 0)
-		if err != nil {
-			return nil, err
-		}
+// 	// Process appendBuffer if not empty
+// 	if len(v.appendBuffer) > 0 {
+// 		appendResults, err := rankFunc(v.appendBuffer, vector, sortOrder, 0)
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		// Adjust IDs to account for persisted size
-		for i := range appendResults {
-			appendResults[i].ID += v.persistedSize
-		}
+// 		// Adjust IDs to account for persisted size
+// 		for i := range appendResults {
+// 			appendResults[i].ID += v.persistedSize
+// 		}
 
-		// Accumulate append buffer results
-		allResults = append(allResults, appendResults...)
-	}
+// 		// Accumulate append buffer results
+// 		allResults = append(allResults, appendResults...)
+// 	}
 
-	// Sort all results by similarity (descending)
-	// We need to re-sort since we've combined multiple chunks
-	slices.SortFunc(allResults, func(a, b math.Distance) int {
-		if a.Value > b.Value {
-			return -1 // a comes before b (descending order)
-		} else if a.Value < b.Value {
-			return 1 // b comes before a
-		}
-		return 0 // equal
-	})
+// 	// Sort all results by similarity (descending)
+// 	// We need to re-sort since we've combined multiple chunks
+// 	slices.SortFunc(allResults, func(a, b math.Distance) int {
+// 		if a.Value > b.Value {
+// 			return -1 // a comes before b (descending order)
+// 		} else if a.Value < b.Value {
+// 			return 1 // b comes before a
+// 		}
+// 		return 0 // equal
+// 	})
 
-	// Apply limit if specified
-	if limit > 0 && len(allResults) > limit {
-		return allResults[:limit], nil
-	}
+// 	// Apply limit if specified
+// 	if limit > 0 && len(allResults) > limit {
+// 		return allResults[:limit], nil
+// 	}
 
-	return allResults, nil
-}
+// 	return allResults, nil
+// }
 
 // loadBuffer loads a specific range of vectors from storage into a buffer
 // start: the index of the first vector to load
@@ -461,4 +462,40 @@ func (v *Vectors) loadBuffer(start, amount int) (memBuffer, error) {
 		data:  data, // Keep reference to prevent GC
 		rows:  rows,
 	}, nil
+}
+
+// Iterator returns an iterator over all vectors (persisted + append buffer) that yields (index, vector) pairs.
+// This uses Go 1.23's iter.Seq2 for idiomatic range-over-function iteration.
+//
+// Example usage:
+//
+//	for index, vector := range vectors.Iterator() {
+//	    // use index and vector
+//	}
+//
+// Note: The returned vectors are copies to prevent mutations from affecting stored data.
+func (v *Vectors) Iterator() iter.Seq2[int, []float32] {
+	return func(yield func(int, []float32) bool) {
+		// Iterate over persisted vectors
+		for i := 0; i < v.persistedSize; i++ {
+			vector, err := v.Get(i)
+			if err != nil {
+				// Skip vectors that can't be read
+				continue
+			}
+			if !yield(i, vector) {
+				return
+			}
+		}
+
+		// Iterate over append buffer
+		for i, vec := range v.appendBuffer {
+			// Create a copy to prevent mutations
+			vector := make([]float32, len(vec))
+			copy(vector, vec)
+			if !yield(v.persistedSize+i, vector) {
+				return
+			}
+		}
+	}
 }

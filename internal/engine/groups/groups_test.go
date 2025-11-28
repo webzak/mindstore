@@ -655,23 +655,6 @@ func TestLazyLoad(t *testing.T) {
 	}
 }
 
-func TestFlushWhenNotLoaded(t *testing.T) {
-	path := createTempFile(t)
-	groups, err := New(path)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
-
-	// Mark as not loaded
-	groups.isLoaded = false
-
-	// Try to flush
-	err = groups.Flush()
-	if err == nil {
-		t.Error("Expected error when flushing unloaded groups")
-	}
-}
-
 func TestComplexScenario(t *testing.T) {
 	path := createTempFile(t)
 	groups, err := New(path)

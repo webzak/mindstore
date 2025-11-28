@@ -1,31 +1,34 @@
 package db
 
-import (
-	"github.com/webzak/mindstore/internal/engine/math"
-)
+// import (
+// 	"fmt"
 
-// SortOrder
-type SortOrder int
+// 	"github.com/webzak/mindstore/internal/engine/math"
+// )
 
-const (
-	SortAsc  = SortOrder(math.SortAsc)
-	SortDesc = SortOrder(math.SortDesc)
-)
+// // SortOrder
+// type SortOrder int
 
-// VectorSearchMethod represents the search/similarity algorithm to use
-type VectorSearchMethod int
+// const (
+// 	SortAsc  = SortOrder(math.SortAsc)
+// 	SortDesc = SortOrder(math.SortDesc)
+// )
 
-const (
-	// CosineSimMethod uses cosine similarity for search
-	CosineSimMethod = VectorSearchMethod(math.CosineSimMethod)
-)
+// // VectorSearchMethod represents the search/similarity algorithm to use
+// type VectorSearchMethod int
 
-// VectorSearchResult
-type VectorSearchResult struct {
-	Distance float32 // vector distance value
-	Item     *Item   // item data
-}
+// const (
+// 	// CosineSimMethod uses cosine similarity for search
+// 	CosineSimMethod = VectorSearchMethod(math.CosineSimMethod)
+// )
 
+// // VectorSearchResult
+// type VectorSearchResult struct {
+// 	Distance float32 // vector distance value
+// 	Item     *Item   // item data
+// }
+
+// // VectorSearch
 // func (c *Collection) VectorSearch(vector []float32, searchType VectorSearchMethod, sortOrder SortOrder, limit int, opts *ReadOptions) ([]VectorSearchResult, error) {
 // 	// Check if vectors are enabled
 // 	if c.config.VectorSize != len(vector) {
