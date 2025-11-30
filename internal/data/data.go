@@ -243,7 +243,7 @@ func (d *Data) Replace(data []byte, offset int64) error {
 	totalSize := d.persistedSize + int64(len(d.appendBuffer))
 
 	// Step 1: Check that offset is valid for replacement
-	if offset <= 0 || offset >= totalSize {
+	if offset < 0 || offset >= totalSize {
 		return fmt.Errorf("invalid offset for replacement: offset=%d, totalSize=%d", offset, totalSize)
 	}
 

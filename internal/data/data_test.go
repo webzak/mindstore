@@ -550,7 +550,7 @@ func TestClose(t *testing.T) {
 }
 
 func TestReplace(t *testing.T) {
-	t.Run("returns error for invalid offset - zero", func(t *testing.T) {
+	t.Run("replaces data at offset zero", func(t *testing.T) {
 		dir := t.TempDir()
 		path := filepath.Join(dir, "test.data")
 
@@ -561,9 +561,14 @@ func TestReplace(t *testing.T) {
 		// Append some data
 		d.Append([]byte("original data"))
 
-		// Try to replace at offset 0
+		// Replace at offset 0 (valid offset - start of file)
 		err = d.Replace([]byte("new"), 0)
-		assert.NotNilError(t, err)
+		assert.NilError(t, err)
+
+		// Verify the replacement
+		read, err := d.Read(0, 3)
+		assert.NilError(t, err)
+		assert.DeepEqual(t, []byte("new"), read)
 	})
 
 	t.Run("returns error for invalid offset - negative", func(t *testing.T) {
