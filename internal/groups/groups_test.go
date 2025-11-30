@@ -1,19 +1,16 @@
 package groups
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/webzak/mindstore/internal/testutil"
 	"github.com/webzak/mindstore/internal/testutil/assert"
 )
 
 func TestNew(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	g, err := New(filepath.Join(tmpDir, "groups.bin"))
+	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 	assert.NotNil(t, g, "groups should not be nil")
 	assert.Equal(t, 0, g.nextGroupID)
@@ -22,10 +19,9 @@ func TestNew(t *testing.T) {
 }
 
 func TestCreateGroup(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	g, err := New(filepath.Join(tmpDir, "groups.bin"))
+	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 
 	// Create first group with index 0
@@ -53,10 +49,9 @@ func TestCreateGroup(t *testing.T) {
 }
 
 func TestCreateGroupDuplicateIndex(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	g, err := New(filepath.Join(tmpDir, "groups.bin"))
+	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 
 	// Create first group with index 10
@@ -70,10 +65,9 @@ func TestCreateGroupDuplicateIndex(t *testing.T) {
 }
 
 func TestAssign(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	g, err := New(filepath.Join(tmpDir, "groups.bin"))
+	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 
 	// Create a group with index 0 at place 0
@@ -95,10 +89,9 @@ func TestAssign(t *testing.T) {
 }
 
 func TestAssignInvalidGroupID(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	g, err := New(filepath.Join(tmpDir, "groups.bin"))
+	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 
 	// Try to assign to non-existent group
@@ -111,10 +104,9 @@ func TestAssignInvalidGroupID(t *testing.T) {
 }
 
 func TestAssignDuplicatePlace(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	g, err := New(filepath.Join(tmpDir, "groups.bin"))
+	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 
 	groupID, err := g.CreateGroup(0)
@@ -126,10 +118,9 @@ func TestAssignDuplicatePlace(t *testing.T) {
 }
 
 func TestAssignIndexToMultipleGroups(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	g, err := New(filepath.Join(tmpDir, "groups.bin"))
+	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 
 	// Create first group with index 0
@@ -146,10 +137,9 @@ func TestAssignIndexToMultipleGroups(t *testing.T) {
 }
 
 func TestAssignUpdatePlace(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	g, err := New(filepath.Join(tmpDir, "groups.bin"))
+	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 
 	groupID, err := g.CreateGroup(0)
@@ -173,10 +163,9 @@ func TestAssignUpdatePlace(t *testing.T) {
 }
 
 func TestGetGroup(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	g, err := New(filepath.Join(tmpDir, "groups.bin"))
+	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 
 	// Create groups
@@ -203,10 +192,9 @@ func TestGetGroup(t *testing.T) {
 }
 
 func TestGetMembers(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	g, err := New(filepath.Join(tmpDir, "groups.bin"))
+	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 
 	groupID, err := g.CreateGroup(5)
@@ -229,10 +217,9 @@ func TestGetMembers(t *testing.T) {
 }
 
 func TestGetMembersInvalidGroupID(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	g, err := New(filepath.Join(tmpDir, "groups.bin"))
+	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 
 	// Negative group ID
@@ -241,10 +228,9 @@ func TestGetMembersInvalidGroupID(t *testing.T) {
 }
 
 func TestGetMembersNonExistentGroup(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	g, err := New(filepath.Join(tmpDir, "groups.bin"))
+	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 
 	// Non-existent group returns nil
@@ -254,10 +240,9 @@ func TestGetMembersNonExistentGroup(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	g, err := New(filepath.Join(tmpDir, "groups.bin"))
+	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 
 	// Initially zero
@@ -294,10 +279,9 @@ func TestCount(t *testing.T) {
 }
 
 func TestFlushAndLoad(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	path := filepath.Join(tmpDir, "groups.bin")
+	path := filepath.Join(dir, "groups.bin")
 
 	// Create and populate groups
 	g, err := New(path)
@@ -358,10 +342,9 @@ func TestFlushAndLoad(t *testing.T) {
 }
 
 func TestTruncate(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	g, err := New(filepath.Join(tmpDir, "groups.bin"))
+	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 
 	// Create some groups
@@ -397,10 +380,9 @@ func TestTruncate(t *testing.T) {
 }
 
 func TestIsPersisted(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	g, err := New(filepath.Join(tmpDir, "groups.bin"))
+	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 
 	// Initially persisted (empty)
@@ -423,10 +405,9 @@ func TestIsPersisted(t *testing.T) {
 }
 
 func TestMultipleFlushes(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	g, err := New(filepath.Join(tmpDir, "groups.bin"))
+	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 
 	// First flush (empty)
@@ -447,10 +428,9 @@ func TestMultipleFlushes(t *testing.T) {
 }
 
 func TestLazyLoading(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	path := filepath.Join(tmpDir, "groups.bin")
+	path := filepath.Join(dir, "groups.bin")
 
 	// Create and save data
 	g1, err := New(path)
@@ -478,10 +458,9 @@ func TestLazyLoading(t *testing.T) {
 }
 
 func TestRemoveMemberFromGroup(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	g, err := New(filepath.Join(tmpDir, "groups.bin"))
+	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 
 	groupID, err := g.CreateGroup(0)

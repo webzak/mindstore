@@ -1,21 +1,14 @@
 package tags
 
 import (
-	"path/filepath"
 	"testing"
 
+	"github.com/webzak/mindstore/internal/testutil"
 	"github.com/webzak/mindstore/internal/testutil/assert"
 )
 
-// Helper function to create a temporary test file
-func createTempFile(t *testing.T) string {
-	t.Helper()
-	tmpDir := t.TempDir()
-	return filepath.Join(tmpDir, "tags.dat")
-}
-
 func TestNew(t *testing.T) {
-	path := createTempFile(t)
+	path := testutil.CreateTempFile(t, "tags.dat")
 
 	tags, err := New(path)
 	assert.NilError(t, err)
@@ -28,7 +21,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
-	path := createTempFile(t)
+	path := testutil.CreateTempFile(t, "tags.dat")
 	tags, err := New(path)
 	assert.NilError(t, err)
 
@@ -38,15 +31,13 @@ func TestAdd(t *testing.T) {
 
 	// Verify forward map
 	ids := tags.forward["test"]
-	if len(ids) != 1 || ids[0] != 1 {
-		t.Errorf("Expected forward map to have [1] for 'test', got %v", ids)
-	}
+	assert.Equal(t, 1, len(ids))
+	assert.Equal(t, 1, ids[0])
 
 	// Verify reverse map
 	tagList := tags.reverse[1]
-	if len(tagList) != 1 || tagList[0] != "test" {
-		t.Errorf("Expected reverse map to have ['test'] for ID 1, got %v", tagList)
-	}
+	assert.Equal(t, 1, len(tagList))
+	assert.Equal(t, "test", tagList[0])
 
 	// Test duplicate tag
 	err = tags.Add(1, "test")
@@ -64,9 +55,8 @@ func TestAdd(t *testing.T) {
 	assert.NilError(t, err)
 
 	ids = tags.forward["spaces"]
-	if len(ids) != 1 || ids[0] != 3 {
-		t.Errorf("Expected tag 'spaces' to be trimmed and normalized")
-	}
+	assert.Equal(t, 1, len(ids))
+	assert.Equal(t, 3, ids[0])
 
 	// Test negative ID
 	err = tags.Add(-1, "negative")
@@ -85,18 +75,14 @@ func TestAdd(t *testing.T) {
 }
 
 func TestGetIDs(t *testing.T) {
-	path := createTempFile(t)
+	path := testutil.CreateTempFile(t, "tags.dat")
 	tags, err := New(path)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
+	assert.NilError(t, err)
 
 	// Test getting IDs for non-existent tag
 	ids, err := tags.GetIDs("nonexistent")
 	assert.NilError(t, err)
-	if ids != nil {
-		t.Errorf("Expected nil for non-existent tag, got %v", ids)
-	}
+	assert.Equal(t, true, ids == nil)
 
 	// Add tags
 	tags.Add(1, "test")
@@ -116,24 +102,18 @@ func TestGetIDs(t *testing.T) {
 	// Test that returned slice is a copy
 	ids[0] = 999
 	originalIDs := tags.forward["test"]
-	if originalIDs[0] == 999 {
-		t.Error("Modifying returned slice should not affect internal state")
-	}
+	assert.Equal(t, false, originalIDs[0] == 999)
 }
 
 func TestGetTags(t *testing.T) {
-	path := createTempFile(t)
+	path := testutil.CreateTempFile(t, "tags.dat")
 	tags, err := New(path)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
+	assert.NilError(t, err)
 
 	// Test getting tags for non-existent ID
 	tagList, err := tags.GetTags(999)
 	assert.NilError(t, err)
-	if tagList != nil {
-		t.Errorf("Expected nil for non-existent ID, got %v", tagList)
-	}
+	assert.Equal(t, true, tagList == nil)
 
 	// Add tags
 	tags.Add(1, "tag1")
@@ -148,13 +128,11 @@ func TestGetTags(t *testing.T) {
 	// Test that returned slice is a copy
 	tagList[0] = "modified"
 	originalTags := tags.reverse[1]
-	if originalTags[0] == "modified" {
-		t.Error("Modifying returned slice should not affect internal state")
-	}
+	assert.Equal(t, false, originalTags[0] == "modified")
 }
 
 func TestRemove(t *testing.T) {
-	path := createTempFile(t)
+	path := testutil.CreateTempFile(t, "tags.dat")
 	tags, err := New(path)
 	assert.NilError(t, err)
 
@@ -173,15 +151,13 @@ func TestRemove(t *testing.T) {
 
 	// Verify forward map
 	ids := tags.forward["test"]
-	if len(ids) != 1 || ids[0] != 2 {
-		t.Errorf("Expected forward map to have [2] for 'test', got %v", ids)
-	}
+	assert.Equal(t, 1, len(ids))
+	assert.Equal(t, 2, ids[0])
 
 	// Verify reverse map
 	tagList := tags.reverse[1]
-	if len(tagList) != 1 || tagList[0] != "other" {
-		t.Errorf("Expected reverse map to have ['other'] for ID 1, got %v", tagList)
-	}
+	assert.Equal(t, 1, len(tagList))
+	assert.Equal(t, "other", tagList[0])
 
 	// Test removing last occurrence of tag
 	err = tags.Remove(2, "test")
@@ -189,9 +165,7 @@ func TestRemove(t *testing.T) {
 
 	// Verify tag is deleted from forward map
 	_, exists := tags.forward["test"]
-	if exists {
-		t.Error("Expected 'test' tag to be deleted from forward map")
-	}
+	assert.Equal(t, false, exists)
 
 	// Test case insensitivity
 	tags.Add(3, "case")
@@ -223,7 +197,7 @@ func TestRemove(t *testing.T) {
 }
 
 func TestGetAllTags(t *testing.T) {
-	path := createTempFile(t)
+	path := testutil.CreateTempFile(t, "tags.dat")
 	tags, err := New(path)
 	assert.NilError(t, err)
 
@@ -246,13 +220,12 @@ func TestGetAllTags(t *testing.T) {
 	for _, tag := range allTags {
 		tagMap[tag] = true
 	}
-	if !tagMap["tag1"] || !tagMap["tag2"] {
-		t.Errorf("Expected tags 'tag1' and 'tag2', got %v", allTags)
-	}
+	assert.Equal(t, true, tagMap["tag1"])
+	assert.Equal(t, true, tagMap["tag2"])
 }
 
 func TestDestroy(t *testing.T) {
-	path := createTempFile(t)
+	path := testutil.CreateTempFile(t, "tags.dat")
 	tags, err := New(path)
 	assert.NilError(t, err)
 
@@ -278,7 +251,7 @@ func TestDestroy(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
-	path := createTempFile(t)
+	path := testutil.CreateTempFile(t, "tags.dat")
 	tags, err := New(path)
 	assert.NilError(t, err)
 
@@ -313,7 +286,7 @@ func TestCount(t *testing.T) {
 }
 
 func TestFlush(t *testing.T) {
-	path := createTempFile(t)
+	path := testutil.CreateTempFile(t, "tags.dat")
 	tags, err := New(path)
 	assert.NilError(t, err)
 
@@ -334,9 +307,7 @@ func TestFlush(t *testing.T) {
 	// Verify storage is not empty
 	size, err := tags.storage.Size()
 	assert.NilError(t, err)
-	if size == 0 {
-		t.Error("Expected storage size to be greater than 0 after Flush()")
-	}
+	assert.Equal(t, false, size == 0)
 
 	// Test flushing when already persisted (should be no-op)
 	err = tags.Flush()
@@ -344,7 +315,7 @@ func TestFlush(t *testing.T) {
 }
 
 func TestPersistenceAndLoad(t *testing.T) {
-	path := createTempFile(t)
+	path := testutil.CreateTempFile(t, "tags.dat")
 
 	// Create and populate tags
 	tags1, err := New(path)
@@ -369,42 +340,34 @@ func TestPersistenceAndLoad(t *testing.T) {
 
 	// Verify forward map
 	ids := tags2.forward["tag1"]
-	if len(ids) != 2 {
-		t.Errorf("Expected 2 IDs for 'tag1', got %d", len(ids))
-	}
+	assert.Equal(t, 2, len(ids))
 
 	ids = tags2.forward["tag2"]
-	if len(ids) != 1 || ids[0] != 1 {
-		t.Errorf("Expected [1] for 'tag2', got %v", ids)
-	}
+	assert.Equal(t, 1, len(ids))
+	assert.Equal(t, 1, ids[0])
 
 	ids = tags2.forward["tag3"]
-	if len(ids) != 1 || ids[0] != 2 {
-		t.Errorf("Expected [2] for 'tag3', got %v", ids)
-	}
+	assert.Equal(t, 1, len(ids))
+	assert.Equal(t, 2, ids[0])
 
 	// Verify reverse map
 	tagList := tags2.reverse[1]
-	if len(tagList) != 2 {
-		t.Errorf("Expected 2 tags for ID 1, got %d", len(tagList))
-	}
+	assert.Equal(t, 2, len(tagList))
 
 	tagList = tags2.reverse[2]
-	if len(tagList) != 1 || tagList[0] != "tag3" {
-		t.Errorf("Expected ['tag3'] for ID 2, got %v", tagList)
-	}
+	assert.Equal(t, 1, len(tagList))
+	assert.Equal(t, "tag3", tagList[0])
 
 	tagList = tags2.reverse[3]
-	if len(tagList) != 1 || tagList[0] != "tag1" {
-		t.Errorf("Expected ['tag1'] for ID 3, got %v", tagList)
-	}
+	assert.Equal(t, 1, len(tagList))
+	assert.Equal(t, "tag1", tagList[0])
 
 	// Verify isLoaded flag
 	assert.Equal(t, true, tags2.isLoaded)
 }
 
 func TestLoadEmptyFile(t *testing.T) {
-	path := createTempFile(t)
+	path := testutil.CreateTempFile(t, "tags.dat")
 
 	// Create tags with empty file
 	tags, err := New(path)
@@ -417,13 +380,12 @@ func TestLoadEmptyFile(t *testing.T) {
 
 	assert.Equal(t, true, tags.isLoaded)
 
-	if len(tags.forward) != 0 || len(tags.reverse) != 0 {
-		t.Error("Maps should be empty after loading empty file")
-	}
+	assert.Equal(t, 0, len(tags.forward))
+	assert.Equal(t, 0, len(tags.reverse))
 }
 
 func TestLazyLoad(t *testing.T) {
-	path := createTempFile(t)
+	path := testutil.CreateTempFile(t, "tags.dat")
 
 	// Create and populate tags
 	tags1, err := New(path)
@@ -447,23 +409,19 @@ func TestLazyLoad(t *testing.T) {
 
 	// Verify old data was loaded
 	ids, _ := tags2.GetIDs("test")
-	if len(ids) != 1 || ids[0] != 1 {
-		t.Error("Previously persisted data should be loaded")
-	}
+	assert.Equal(t, 1, len(ids))
+	assert.Equal(t, 1, ids[0])
 
 	// Verify new data was added
 	ids, _ = tags2.GetIDs("new")
-	if len(ids) != 1 || ids[0] != 2 {
-		t.Error("New data should be added after load")
-	}
+	assert.Equal(t, 1, len(ids))
+	assert.Equal(t, 2, ids[0])
 }
 
 func TestMultipleTagsPerID(t *testing.T) {
-	path := createTempFile(t)
+	path := testutil.CreateTempFile(t, "tags.dat")
 	tags, err := New(path)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
+	assert.NilError(t, err)
 
 	// Add multiple tags to same ID
 	tags.Add(1, "tag1")
@@ -472,28 +430,21 @@ func TestMultipleTagsPerID(t *testing.T) {
 
 	// Verify GetTags
 	tagList, err := tags.GetTags(1)
-	if err != nil {
-		t.Errorf("GetTags() failed: %v", err)
-	}
-	if len(tagList) != 3 {
-		t.Errorf("Expected 3 tags, got %d", len(tagList))
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, 3, len(tagList))
 
 	// Verify each tag points back to ID 1
 	for _, tag := range tagList {
 		ids, _ := tags.GetIDs(tag)
-		if len(ids) != 1 || ids[0] != 1 {
-			t.Errorf("Tag '%s' should point to ID 1, got %v", tag, ids)
-		}
+		assert.Equal(t, 1, len(ids))
+		assert.Equal(t, 1, ids[0])
 	}
 }
 
 func TestMultipleIDsPerTag(t *testing.T) {
-	path := createTempFile(t)
+	path := testutil.CreateTempFile(t, "tags.dat")
 	tags, err := New(path)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
+	assert.NilError(t, err)
 
 	// Add same tag to multiple IDs
 	tags.Add(1, "shared")
@@ -502,12 +453,8 @@ func TestMultipleIDsPerTag(t *testing.T) {
 
 	// Verify GetIDs
 	ids, err := tags.GetIDs("shared")
-	if err != nil {
-		t.Errorf("GetIDs() failed: %v", err)
-	}
-	if len(ids) != 3 {
-		t.Errorf("Expected 3 IDs, got %d", len(ids))
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, 3, len(ids))
 
 	// Verify each ID has the tag
 	for _, id := range ids {
@@ -519,18 +466,14 @@ func TestMultipleIDsPerTag(t *testing.T) {
 				break
 			}
 		}
-		if !found {
-			t.Errorf("ID %d should have tag 'shared'", id)
-		}
+		assert.Equal(t, true, found)
 	}
 }
 
 func TestComplexScenario(t *testing.T) {
-	path := createTempFile(t)
+	path := testutil.CreateTempFile(t, "tags.dat")
 	tags, err := New(path)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
+	assert.NilError(t, err)
 
 	// Complex scenario: multiple IDs, multiple tags
 	tags.Add(1, "go")
@@ -542,26 +485,18 @@ func TestComplexScenario(t *testing.T) {
 
 	// Test Count
 	count, _ := tags.Count()
-	if count != 3 {
-		t.Errorf("Expected count 3, got %d", count)
-	}
+	assert.Equal(t, 3, count)
 
 	// Test GetAllTags
 	allTags, _ := tags.GetAllTags()
-	if len(allTags) != 4 {
-		t.Errorf("Expected 4 unique tags, got %d", len(allTags))
-	}
+	assert.Equal(t, 4, len(allTags))
 
 	// Test GetIDs for shared tag
 	ids, _ := tags.GetIDs("go")
-	if len(ids) != 2 {
-		t.Errorf("Expected 2 IDs for 'go', got %d", len(ids))
-	}
+	assert.Equal(t, 2, len(ids))
 
 	ids, _ = tags.GetIDs("backend")
-	if len(ids) != 2 {
-		t.Errorf("Expected 2 IDs for 'backend', got %d", len(ids))
-	}
+	assert.Equal(t, 2, len(ids))
 
 	// Flush and reload
 	tags.Flush()
@@ -572,34 +507,26 @@ func TestComplexScenario(t *testing.T) {
 
 	// Verify data after reload
 	count, _ = tags2.Count()
-	if count != 3 {
-		t.Errorf("Expected count 3 after reload, got %d", count)
-	}
+	assert.Equal(t, 3, count)
 
 	allTags, _ = tags2.GetAllTags()
-	if len(allTags) != 4 {
-		t.Errorf("Expected 4 unique tags after reload, got %d", len(allTags))
-	}
+	assert.Equal(t, 4, len(allTags))
 
 	// Remove a tag and verify
 	tags2.Remove(1, "backend")
 	tagList, _ := tags2.GetTags(1)
-	if len(tagList) != 1 || tagList[0] != "go" {
-		t.Errorf("Expected ['go'] for ID 1 after removal, got %v", tagList)
-	}
+	assert.Equal(t, 1, len(tagList))
+	assert.Equal(t, "go", tagList[0])
 
 	ids, _ = tags2.GetIDs("backend")
-	if len(ids) != 1 || ids[0] != 3 {
-		t.Errorf("Expected [3] for 'backend' after removal, got %v", ids)
-	}
+	assert.Equal(t, 1, len(ids))
+	assert.Equal(t, 3, ids[0])
 }
 
 func TestRemoveAll(t *testing.T) {
-	path := createTempFile(t)
+	path := testutil.CreateTempFile(t, "tags.dat")
 	tags, err := New(path)
-	if err != nil {
-		t.Fatalf("New() failed: %v", err)
-	}
+	assert.NilError(t, err)
 
 	// Add tags for multiple IDs
 	tags.Add(1, "tag1")
@@ -610,39 +537,25 @@ func TestRemoveAll(t *testing.T) {
 
 	// Verify initial state for ID 1
 	tagList, err := tags.GetTags(1)
-	if err != nil {
-		t.Fatalf("GetTags(1) failed: %v", err)
-	}
-	if len(tagList) != 3 {
-		t.Errorf("Expected 3 tags for ID 1, got %d", len(tagList))
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, 3, len(tagList))
 
 	// Remove all tags for ID 1
 	err = tags.RemoveAll(1)
-	if err != nil {
-		t.Errorf("RemoveAll(1) failed: %v", err)
-	}
+	assert.NilError(t, err)
 
 	// Verify ID 1 has no tags
 	tagList, err = tags.GetTags(1)
-	if err != nil {
-		t.Fatalf("GetTags(1) failed: %v", err)
-	}
-	if len(tagList) != 0 {
-		t.Errorf("Expected 0 tags for ID 1 after RemoveAll, got %d", len(tagList))
-	}
+	assert.NilError(t, err)
+	assert.Equal(t, 0, len(tagList))
 
 	// Verify ID 1 is removed from reverse map
-	if _, ok := tags.reverse[1]; ok {
-		t.Error("ID 1 should be removed from reverse map")
-	}
+	_, ok := tags.reverse[1]
+	assert.Equal(t, false, ok)
 
 	// Verify ID 1 is removed from forward map for its tags
 	ids, _ := tags.GetIDs("tag1")
 	assert.Equal(t, 0, len(ids))
-	if len(ids) != 0 {
-		t.Errorf("Expected 0 IDs for 'tag1', got %v", ids)
-	}
 
 	// Verify shared tag 'tag2' still exists for ID 2
 	ids, _ = tags.GetIDs("tag2")

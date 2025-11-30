@@ -1,17 +1,14 @@
 package vectors
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/webzak/mindstore/internal/testutil"
 	"github.com/webzak/mindstore/internal/testutil/assert"
 )
 
 func TestNew(t *testing.T) {
-	dir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	path := filepath.Join(dir, "vectors.dat")
 	opt := Options{
@@ -33,8 +30,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
-	dir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	path := filepath.Join(dir, "vectors.dat")
 	opt := Options{
@@ -62,8 +58,7 @@ func TestCount(t *testing.T) {
 }
 
 func TestAppend(t *testing.T) {
-	dir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	path := filepath.Join(dir, "vectors.dat")
 	opt := Options{
@@ -93,8 +88,7 @@ func TestAppend(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	dir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	path := filepath.Join(dir, "vectors.dat")
 	opt := Options{
@@ -138,8 +132,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestFlush(t *testing.T) {
-	dir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	path := filepath.Join(dir, "vectors.dat")
 	opt := Options{
@@ -185,8 +178,7 @@ func TestFlush(t *testing.T) {
 }
 
 func TestAutoFlush(t *testing.T) {
-	dir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	path := filepath.Join(dir, "vectors.dat")
 	opt := Options{
@@ -213,8 +205,7 @@ func TestAutoFlush(t *testing.T) {
 }
 
 func TestReplace(t *testing.T) {
-	dir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	path := filepath.Join(dir, "vectors.dat")
 	opt := Options{
@@ -269,8 +260,7 @@ func TestReplace(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	dir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	path := filepath.Join(dir, "vectors.dat")
 	opt := Options{
@@ -327,8 +317,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestDeleteWithAppendBuffer(t *testing.T) {
-	dir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	path := filepath.Join(dir, "vectors.dat")
 	opt := Options{
@@ -359,8 +348,7 @@ func TestDeleteWithAppendBuffer(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
-	dir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	path := filepath.Join(dir, "vectors.dat")
 	opt := Options{
@@ -393,8 +381,7 @@ func TestClose(t *testing.T) {
 }
 
 func TestCloseWithReaderFD(t *testing.T) {
-	dir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	path := filepath.Join(dir, "vectors.dat")
 	opt := Options{
@@ -433,8 +420,7 @@ func TestCloseWithReaderFD(t *testing.T) {
 }
 
 func TestIterator(t *testing.T) {
-	dir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	path := filepath.Join(dir, "vectors.dat")
 	opt := Options{
@@ -477,8 +463,7 @@ func TestIterator(t *testing.T) {
 }
 
 func TestIteratorEmpty(t *testing.T) {
-	dir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	path := filepath.Join(dir, "vectors.dat")
 	opt := Options{
@@ -498,8 +483,7 @@ func TestIteratorEmpty(t *testing.T) {
 }
 
 func TestIteratorOnlyAppendBuffer(t *testing.T) {
-	dir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	path := filepath.Join(dir, "vectors.dat")
 	opt := Options{
@@ -535,8 +519,7 @@ func TestIteratorOnlyAppendBuffer(t *testing.T) {
 }
 
 func TestPersistence(t *testing.T) {
-	dir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	path := filepath.Join(dir, "vectors.dat")
 	opt := Options{
@@ -576,8 +559,7 @@ func TestPersistence(t *testing.T) {
 }
 
 func TestReaderFDReuse(t *testing.T) {
-	dir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	path := filepath.Join(dir, "vectors.dat")
 	opt := Options{

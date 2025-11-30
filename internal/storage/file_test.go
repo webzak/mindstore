@@ -2,27 +2,23 @@ package storage
 
 import (
 	"io"
-	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/webzak/mindstore/internal/testutil"
 	"github.com/webzak/mindstore/internal/testutil/assert"
 )
 
 func TestFileInit(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	f := NewFile(filepath.Join(tmpDir, "storage.bin"))
+	f := NewFile(filepath.Join(dir, "storage.bin"))
 	assert.NilError(t, f.Init())
 }
 
 func TestFileSize(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	f := NewFile(filepath.Join(tmpDir, "storage.bin"))
+	f := NewFile(filepath.Join(dir, "storage.bin"))
 	_, err := f.Size()
 	assert.ErrorIs(t, ErrFileStat, err)
 	assert.NilError(t, f.Init())
@@ -32,10 +28,9 @@ func TestFileSize(t *testing.T) {
 }
 
 func TestFileAppend(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	f := NewFile(filepath.Join(tmpDir, "storage.bin"))
+	f := NewFile(filepath.Join(dir, "storage.bin"))
 	_, err := f.Size()
 	assert.ErrorIs(t, ErrFileStat, err)
 	assert.NilError(t, f.Init())
@@ -78,10 +73,9 @@ func TestFileAppend(t *testing.T) {
 }
 
 func TestFileWriter(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	f := NewFile(filepath.Join(tmpDir, "storage.bin"))
+	f := NewFile(filepath.Join(dir, "storage.bin"))
 	assert.NilError(t, f.Init())
 
 	writer, err := f.Writer(0)
@@ -122,10 +116,9 @@ func TestFileWriter(t *testing.T) {
 }
 
 func TestFileWriterSeekEnd(t *testing.T) {
-	tmpDir := testutil.MakeTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	dir := t.TempDir()
 
-	f := NewFile(filepath.Join(tmpDir, "storage.bin"))
+	f := NewFile(filepath.Join(dir, "storage.bin"))
 	assert.NilError(t, f.Init())
 
 	// Write initial data
