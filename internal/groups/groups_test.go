@@ -13,7 +13,7 @@ func TestNew(t *testing.T) {
 	g, err := New(filepath.Join(dir, "groups.bin"))
 	assert.NilError(t, err)
 	assert.NotNil(t, g, "groups should not be nil")
-	assert.Equal(t, 0, g.nextGroupID)
+	assert.Equal(t, 1, g.nextGroupID)
 	assert.Equal(t, true, g.isPersisted)
 	assert.Equal(t, true, g.isLoaded)
 }
@@ -27,8 +27,8 @@ func TestCreateGroup(t *testing.T) {
 	// Create first group with index 0
 	groupID, err := g.CreateGroup(0)
 	assert.NilError(t, err)
-	assert.Equal(t, 0, groupID)
-	assert.Equal(t, 1, g.nextGroupID)
+	assert.Equal(t, 1, groupID)
+	assert.Equal(t, 2, g.nextGroupID)
 	assert.Equal(t, false, g.isPersisted)
 
 	// Verify the group was created with the first member
@@ -39,8 +39,8 @@ func TestCreateGroup(t *testing.T) {
 	// Create second group with index 5
 	groupID2, err := g.CreateGroup(5)
 	assert.NilError(t, err)
-	assert.Equal(t, 1, groupID2)
-	assert.Equal(t, 2, g.nextGroupID)
+	assert.Equal(t, 2, groupID2)
+	assert.Equal(t, 3, g.nextGroupID)
 
 	// Verify second group
 	members2, err := g.GetMembers(groupID2)
@@ -57,7 +57,7 @@ func TestCreateGroupDuplicateIndex(t *testing.T) {
 	// Create first group with index 10
 	groupID, err := g.CreateGroup(10)
 	assert.NilError(t, err)
-	assert.Equal(t, 0, groupID)
+	assert.Equal(t, 1, groupID)
 
 	// Try to create another group with same index
 	_, err = g.CreateGroup(10)
@@ -338,7 +338,7 @@ func TestFlushAndLoad(t *testing.T) {
 	assert.Equal(t, 5, count)
 
 	// Verify nextGroupID was restored correctly (after data is loaded)
-	assert.Equal(t, 2, g2.nextGroupID)
+	assert.Equal(t, 3, g2.nextGroupID)
 }
 
 func TestTruncate(t *testing.T) {
@@ -367,16 +367,16 @@ func TestTruncate(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, 0, count)
 
-	// Verify nextGroupID is reset to 0
-	assert.Equal(t, 0, g.nextGroupID)
+	// Verify nextGroupID is reset to 1
+	assert.Equal(t, 1, g.nextGroupID)
 
 	// Verify isPersisted is true
 	assert.Equal(t, true, g.IsPersisted())
 
-	// Verify we can create new groups starting from 0 again
+	// Verify we can create new groups starting from 1 again
 	newGroupID, err := g.CreateGroup(100)
 	assert.NilError(t, err)
-	assert.Equal(t, 0, newGroupID)
+	assert.Equal(t, 1, newGroupID)
 }
 
 func TestIsPersisted(t *testing.T) {

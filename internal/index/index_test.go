@@ -197,7 +197,7 @@ func TestResetFlags(t *testing.T) {
 	}
 }
 
-func TestDestroy(t *testing.T) {
+func TestTruncate(t *testing.T) {
 	dir := t.TempDir()
 
 	path := filepath.Join(dir, "test.idx")
@@ -208,7 +208,7 @@ func TestDestroy(t *testing.T) {
 	idx.Append(row)
 	idx.Flush()
 
-	err = idx.Destroy()
+	err = idx.Truncate()
 	assert.NilError(t, err)
 
 	assert.Equal(t, 0, idx.Count())

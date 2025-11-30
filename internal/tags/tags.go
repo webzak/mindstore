@@ -294,8 +294,8 @@ func (t *Tags) GetAllTags() ([]string, error) {
 	return result, nil
 }
 
-// Destroy clears all tags and truncates the storage
-func (t *Tags) Destroy() error {
+// Truncate clears all tags and truncates the storage
+func (t *Tags) Truncate() error {
 
 	if !t.isLoaded {
 		if err := t.load(); err != nil {
@@ -326,4 +326,9 @@ func (t *Tags) Count() (int, error) {
 	}
 
 	return len(t.reverse), nil
+}
+
+// Close flushes any unsaved data to storage
+func (t *Tags) Close() error {
+	return t.Flush()
 }

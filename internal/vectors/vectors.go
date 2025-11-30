@@ -56,7 +56,11 @@ func New(path string, opt Options) (*Vectors, error) {
 	}
 
 	// Calculate persistedSize after vectorSize is set
-	v.persistedSize = int(size) / (v.vectorSize * conv.Float32Size)
+	if v.vectorSize > 0 {
+		v.persistedSize = int(size) / (v.vectorSize * conv.Float32Size)
+	} else {
+		v.persistedSize = 0
+	}
 	return &v, nil
 }
 
@@ -108,6 +112,20 @@ func (v *Vectors) Close() error {
 		}
 		v.readerFD = nil
 	}
+
+	return nil
+}
+
+// Truncate removes all vectors from storage
+func (v *Vectors) Truncate() error {
+	// Truncate the storage file to zero size
+	if err := v.storage.Truncate(0); err != nil {
+		return err
+	}
+
+	// Clear in-memory buffers
+	v.appendBuffer = v.appendBuffer[:0]
+	v.persistedSize = 0
 
 	return nil
 }

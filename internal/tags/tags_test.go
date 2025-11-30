@@ -224,7 +224,7 @@ func TestGetAllTags(t *testing.T) {
 	assert.Equal(t, true, tagMap["tag2"])
 }
 
-func TestDestroy(t *testing.T) {
+func TestTruncate(t *testing.T) {
 	path := testutil.CreateTempFile(t, "tags.dat")
 	tags, err := New(path)
 	assert.NilError(t, err)
@@ -233,8 +233,7 @@ func TestDestroy(t *testing.T) {
 	tags.Add(1, "test")
 	tags.Add(2, "other")
 
-	// Destroy
-	err = tags.Destroy()
+	err = tags.Truncate()
 	assert.NilError(t, err)
 
 	// Verify maps are empty

@@ -256,8 +256,8 @@ func (idx *Index) ResetFlags(n int, flags uint8) error {
 	return idx.updatePersistedRow(n)
 }
 
-// Destroy destroys the index by truncating storage and clearing all rows
-func (idx *Index) Destroy() error {
+// Truncate truncates the index by truncating storage and clearing all rows
+func (idx *Index) Truncate() error {
 	// Truncate the storage to zero bytes
 	if err := idx.storage.Truncate(0); err != nil {
 		return err
@@ -320,4 +320,9 @@ func (idx *Index) Iterator() iter.Seq2[int, *Row] {
 			}
 		}
 	}
+}
+
+// Close flushes any unsaved data to storage
+func (idx *Index) Close() error {
+	return idx.Flush()
 }

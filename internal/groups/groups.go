@@ -45,7 +45,7 @@ func New(path string) (*Groups, error) {
 	return &Groups{
 		groups:       make(map[int][]Member),
 		indexToGroup: make(map[int]int),
-		nextGroupID:  0, // Start group IDs from 0
+		nextGroupID:  1, // Start group IDs from 1
 		storage:      storage,
 		isPersisted:  true,
 		isLoaded:     size == 0,
@@ -288,7 +288,7 @@ func (g *Groups) Truncate() error {
 	// Clear in-memory data
 	g.groups = make(map[int][]Member)
 	g.indexToGroup = make(map[int]int)
-	g.nextGroupID = 0
+	g.nextGroupID = 1
 	g.isPersisted = true
 
 	return nil

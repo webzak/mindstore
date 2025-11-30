@@ -1,4 +1,4 @@
-package mindstore
+package dataset
 
 const (
 	DefaultMaxDataAppendBufferSize     = 2 << 16

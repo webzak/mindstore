@@ -103,6 +103,21 @@ func (d *Data) Close() error {
 	return nil
 }
 
+// Truncate removes all data from storage
+func (d *Data) Truncate() error {
+	// Truncate the storage file to zero size
+	if err := d.storage.Truncate(0); err != nil {
+		return err
+	}
+
+	// Clear in-memory buffers
+	d.appendBuffer = d.appendBuffer[:0]
+	d.bufferOffsets = d.bufferOffsets[:0]
+	d.persistedSize = 0
+
+	return nil
+}
+
 // Read reads data from storage
 func (d *Data) Read(offset int64, length int64) ([]byte, error) {
 	// Handle sentinel offset for empty data

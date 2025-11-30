@@ -108,9 +108,8 @@ func TestFileWriter(t *testing.T) {
 	n, err = reader.Read(rb)
 	assert.NilError(t, err)
 	assert.Equal(t, 16, n)
-	if rb[8] != 20 || rb[11] != 23 {
-		t.Fatalf("expected overwritten values, got: %v", rb)
-	}
+	assert.Equal(t, byte(20), rb[8])
+	assert.Equal(t, byte(23), rb[11])
 	err = reader.Close()
 	assert.NilError(t, err)
 }

@@ -20,9 +20,7 @@ func TestNew(t *testing.T) {
 	v, err := New(path, opt)
 	assert.NilError(t, err)
 
-	if v == nil {
-		t.Fatal("New() returned nil vectors")
-	}
+	assert.NotNil(t, v, "New() returned nil vectors")
 	assert.Equal(t, 0, v.Count())
 	assert.Equal(t, 128, v.vectorSize)
 	assert.Equal(t, 100, v.maxBufferSize)
@@ -405,9 +403,7 @@ func TestCloseWithReaderFD(t *testing.T) {
 	assert.NilError(t, err)
 
 	// readerFD should be open
-	if v.readerFD == nil {
-		t.Fatal("readerFD should be open after Get")
-	}
+	assert.NotNil(t, v.readerFD, "readerFD should be open after Get")
 
 	// Close should close readerFD
 	err = v.Close()
@@ -452,9 +448,7 @@ func TestIterator(t *testing.T) {
 	expected := [][]float32{vec1, vec2, vec3}
 	count := 0
 	for idx, vec := range v.Iterator() {
-		if idx != count {
-			t.Errorf("Iterator index = %d, want %d", idx, count)
-		}
+		assert.Equal(t, count, idx)
 		assert.DeepEqual(t, expected[count], vec)
 		count++
 	}
@@ -508,9 +502,7 @@ func TestIteratorOnlyAppendBuffer(t *testing.T) {
 	expected := [][]float32{vec1, vec2}
 	count := 0
 	for idx, vec := range v.Iterator() {
-		if idx != count {
-			t.Errorf("Iterator index = %d, want %d", idx, count)
-		}
+		assert.Equal(t, count, idx)
 		assert.DeepEqual(t, expected[count], vec)
 		count++
 	}
@@ -589,24 +581,18 @@ func TestReaderFDReuse(t *testing.T) {
 	_, err = v.Get(0)
 	assert.NilError(t, err)
 
-	if v.readerFD == nil {
-		t.Fatal("readerFD should be open after first Get")
-	}
+	assert.NotNil(t, v.readerFD, "readerFD should be open after first Get")
 	firstFD := v.readerFD
 
 	// Second Get should reuse the same FD
 	_, err = v.Get(1)
 	assert.NilError(t, err)
 
-	if v.readerFD != firstFD {
-		t.Error("readerFD should be reused across Get calls")
-	}
+	assert.Equal(t, firstFD, v.readerFD)
 
 	// Third Get should still reuse the same FD
 	_, err = v.Get(2)
 	assert.NilError(t, err)
 
-	if v.readerFD != firstFD {
-		t.Error("readerFD should be reused across Get calls")
-	}
+	assert.Equal(t, firstFD, v.readerFD)
 }
