@@ -549,6 +549,361 @@ func TestClose(t *testing.T) {
 	})
 }
 
+func TestReplace(t *testing.T) {
+	t.Run("returns error for invalid offset - zero", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.data")
+
+		d, err := New(path, Options{MaxAppendBufferSize: 1024})
+		assert.NilError(t, err)
+		defer d.Close()
+
+		// Append some data
+		d.Append([]byte("original data"))
+
+		// Try to replace at offset 0
+		err = d.Replace([]byte("new"), 0)
+		assert.NotNilError(t, err)
+	})
+
+	t.Run("returns error for invalid offset - negative", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.data")
+
+		d, err := New(path, Options{MaxAppendBufferSize: 1024})
+		assert.NilError(t, err)
+		defer d.Close()
+
+		// Append some data
+		d.Append([]byte("original data"))
+
+		// Try to replace at negative offset
+		err = d.Replace([]byte("new"), -5)
+		assert.NotNilError(t, err)
+	})
+
+	t.Run("returns error for offset beyond total size", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.data")
+
+		d, err := New(path, Options{MaxAppendBufferSize: 1024})
+		assert.NilError(t, err)
+		defer d.Close()
+
+		// Append some data
+		d.Append([]byte("original data"))
+
+		// Try to replace beyond the data
+		err = d.Replace([]byte("new"), 1000)
+		assert.NotNilError(t, err)
+	})
+
+	t.Run("replaces data in append buffer - fits completely", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.data")
+
+		d, err := New(path, Options{MaxAppendBufferSize: 1024})
+		assert.NilError(t, err)
+		defer d.Close()
+
+		// Append data to buffer
+		data := []byte("0123456789")
+		offset, _, err := d.Append(data)
+		assert.NilError(t, err)
+		assert.Equal(t, int64(0), offset)
+
+		// Replace part of the buffered data
+		replacement := []byte("ABCD")
+		err = d.Replace(replacement, 3)
+		assert.NilError(t, err)
+
+		// Verify the data was replaced in buffer
+		expected := []byte("012ABCD789")
+		assert.DeepEqual(t, expected, d.appendBuffer)
+
+		// Verify reading returns the replaced data
+		read, err := d.Read(0, 10)
+		assert.NilError(t, err)
+		assert.DeepEqual(t, expected, read)
+	})
+
+	t.Run("replaces data in append buffer - near start of buffer", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.data")
+
+		d, err := New(path, Options{MaxAppendBufferSize: 1024})
+		assert.NilError(t, err)
+		defer d.Close()
+
+		// Append data to buffer
+		data := []byte("original")
+		offset, _, err := d.Append(data)
+		assert.NilError(t, err)
+
+		// Replace near the beginning of buffered data (offset must be > 0)
+		replacement := []byte("NEW")
+		err = d.Replace(replacement, offset+1)
+		assert.NilError(t, err)
+
+		// Verify the replacement
+		expected := []byte("oNEWinal")
+		read, err := d.Read(0, 8)
+		assert.NilError(t, err)
+		assert.DeepEqual(t, expected, read)
+	})
+
+	t.Run("replaces data in append buffer - at end of buffer", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.data")
+
+		d, err := New(path, Options{MaxAppendBufferSize: 1024})
+		assert.NilError(t, err)
+		defer d.Close()
+
+		// Append data to buffer
+		data := []byte("original")
+		d.Append(data)
+
+		// Replace at the end of buffered data
+		replacement := []byte("END")
+		err = d.Replace(replacement, 5)
+		assert.NilError(t, err)
+
+		// Verify the replacement
+		expected := []byte("origiEND")
+		read, err := d.Read(0, 8)
+		assert.NilError(t, err)
+		assert.DeepEqual(t, expected, read)
+	})
+
+	t.Run("flushes and replaces in storage when replacement doesn't fit in buffer", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.data")
+
+		d, err := New(path, Options{MaxAppendBufferSize: 1024})
+		assert.NilError(t, err)
+		defer d.Close()
+
+		// Append data to buffer
+		data := []byte("0123456789")
+		d.Append(data)
+
+		// Try to replace data that extends beyond buffer
+		replacement := []byte("ABCDEFGHIJK")
+		err = d.Replace(replacement, 5)
+		assert.NilError(t, err)
+
+		// Buffer should be flushed
+		assert.Equal(t, 0, len(d.appendBuffer))
+		assert.Equal(t, true, d.IsPersisted())
+
+		// Verify the data was replaced in storage
+		read, err := d.Read(0, 16)
+		assert.NilError(t, err)
+		expected := []byte("01234ABCDEFGHIJK")
+		assert.DeepEqual(t, expected, read)
+	})
+
+	t.Run("replaces data in persisted storage", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.data")
+
+		d, err := New(path, Options{MaxAppendBufferSize: 1024})
+		assert.NilError(t, err)
+		defer d.Close()
+
+		// Append and flush data
+		data := []byte("original persisted data")
+		offset, _, err := d.Append(data)
+		assert.NilError(t, err)
+		err = d.Flush()
+		assert.NilError(t, err)
+
+		// Replace part of the persisted data
+		// "original persisted data" -> "original REPLACED data"
+		// Replace 8 bytes starting at position 9 ("persiste" -> "REPLACED")
+		replacement := []byte("REPLACED")
+		err = d.Replace(replacement, offset+9)
+		assert.NilError(t, err)
+
+		// Verify the replacement
+		// "original " (9 bytes) + "REPLACED" (8 bytes) + "d data" (6 bytes) = 23 bytes
+		read, err := d.Read(0, int64(len(data)))
+		assert.NilError(t, err)
+		expected := []byte("original REPLACEDd data")
+		assert.DeepEqual(t, expected, read)
+	})
+
+	t.Run("replaces data spanning persisted and buffer boundary", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.data")
+
+		d, err := New(path, Options{MaxAppendBufferSize: 1024})
+		assert.NilError(t, err)
+		defer d.Close()
+
+		// Write and flush first part
+		data1 := []byte("persisted_")
+		d.Append(data1)
+		err = d.Flush()
+		assert.NilError(t, err)
+
+		// Write second part to buffer
+		data2 := []byte("buffered")
+		d.Append(data2)
+
+		// Try to replace across the boundary - should flush and replace in storage
+		// Total: "persisted_buffered" (18 bytes)
+		// Replace 5 bytes at position 8: "d_buf" -> "XXXXX"
+		replacement := []byte("XXXXX")
+		err = d.Replace(replacement, 8)
+		assert.NilError(t, err)
+
+		// Should have flushed
+		assert.Equal(t, 0, len(d.appendBuffer))
+
+		// Verify the replacement
+		// "persiste" (8) + "XXXXX" (5) + "fered" (5) = 18 bytes
+		read, err := d.Read(0, 18)
+		assert.NilError(t, err)
+		expected := []byte("persisteXXXXXfered")
+		assert.DeepEqual(t, expected, read)
+	})
+
+	t.Run("replaces most of buffered data", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.data")
+
+		d, err := New(path, Options{MaxAppendBufferSize: 1024})
+		assert.NilError(t, err)
+		defer d.Close()
+
+		// Append data to buffer
+		data := []byte("replace_me")
+		offset, _, err := d.Append(data)
+		assert.NilError(t, err)
+
+		// Replace most of the buffer (offset must be > 0, so start at offset+1)
+		replacement := []byte("ompletely")
+		err = d.Replace(replacement, offset+1)
+		assert.NilError(t, err)
+
+		// Verify
+		read, err := d.Read(0, 10)
+		assert.NilError(t, err)
+		expected := []byte("rompletely")
+		assert.DeepEqual(t, expected, read)
+	})
+
+	t.Run("multiple replacements in buffer", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.data")
+
+		d, err := New(path, Options{MaxAppendBufferSize: 1024})
+		assert.NilError(t, err)
+		defer d.Close()
+
+		// Append data to buffer
+		data := []byte("0123456789")
+		d.Append(data)
+
+		// First replacement
+		err = d.Replace([]byte("AA"), 2)
+		assert.NilError(t, err)
+
+		// Second replacement
+		err = d.Replace([]byte("BB"), 6)
+		assert.NilError(t, err)
+
+		// Verify both replacements
+		expected := []byte("01AA45BB89")
+		read, err := d.Read(0, 10)
+		assert.NilError(t, err)
+		assert.DeepEqual(t, expected, read)
+	})
+
+	t.Run("replace after multiple appends in buffer", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.data")
+
+		d, err := New(path, Options{MaxAppendBufferSize: 1024})
+		assert.NilError(t, err)
+		defer d.Close()
+
+		// Multiple appends
+		d.Append([]byte("first"))
+		d.Append([]byte("second"))
+		d.Append([]byte("third"))
+
+		// Replace in the middle record
+		replacement := []byte("XXX")
+		err = d.Replace(replacement, 5)
+		assert.NilError(t, err)
+
+		// Verify
+		read, err := d.Read(0, 16)
+		assert.NilError(t, err)
+		expected := []byte("firstXXXondthird")
+		assert.DeepEqual(t, expected, read)
+	})
+
+	t.Run("replace with zero-length data", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.data")
+
+		d, err := New(path, Options{MaxAppendBufferSize: 1024})
+		assert.NilError(t, err)
+		defer d.Close()
+
+		// Append data
+		data := []byte("original")
+		d.Append(data)
+
+		// Replace with zero-length data (should work, just copies nothing)
+		err = d.Replace([]byte{}, 5)
+		assert.NilError(t, err)
+
+		// Data should remain unchanged
+		read, err := d.Read(0, 8)
+		assert.NilError(t, err)
+		assert.DeepEqual(t, data, read)
+	})
+
+	t.Run("replace persisted data after reopening", func(t *testing.T) {
+		dir := t.TempDir()
+		path := filepath.Join(dir, "test.data")
+
+		// First session - write and close
+		{
+			d, err := New(path, Options{MaxAppendBufferSize: 100})
+			assert.NilError(t, err)
+
+			d.Append([]byte("original data"))
+			err = d.Close()
+			assert.NilError(t, err)
+		}
+
+		// Second session - reopen and replace
+		{
+			d, err := New(path, Options{MaxAppendBufferSize: 100})
+			assert.NilError(t, err)
+			defer d.Close()
+
+			// Replace part of the persisted data
+			// "original data" (13 bytes) -> replace 8 bytes at position 9
+			// "original " (9) + "REPLACED" (8) would go past end, so we can only replace 4 bytes
+			err = d.Replace([]byte("REPL"), 9)
+			assert.NilError(t, err)
+
+			// Verify
+			read, err := d.Read(0, 13)
+			assert.NilError(t, err)
+			expected := []byte("original REPL")
+			assert.DeepEqual(t, expected, read)
+		}
+	})
+}
+
 func TestIntegration(t *testing.T) {
 	t.Run("complex workflow with mixed operations", func(t *testing.T) {
 		dir := t.TempDir()
