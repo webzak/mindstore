@@ -25,7 +25,7 @@ func TestDataIterator(t *testing.T) {
 	}
 
 	for _, td := range testData {
-		item := &Item{
+		item := Item{
 			Data:           td.data,
 			DataDescriptor: td.descriptor,
 		}
@@ -76,7 +76,7 @@ func TestDataIteratorEarlyBreak(t *testing.T) {
 
 	// Add items
 	for i := 0; i < 10; i++ {
-		item := &Item{
+		item := Item{
 			Data:           []byte("test"),
 			DataDescriptor: 1,
 		}
@@ -114,7 +114,7 @@ func TestMetaDataIterator(t *testing.T) {
 	}
 
 	for _, tm := range testMeta {
-		item := &Item{
+		item := Item{
 			Data:           tm.data,
 			Meta:           tm.meta,
 			DataDescriptor: 1,
@@ -166,7 +166,7 @@ func TestMetaDataIteratorSkipsItemsWithoutMeta(t *testing.T) {
 	defer ds.Close()
 
 	// Add items, some with metadata, some without
-	item1 := &Item{
+	item1 := Item{
 		Data:           []byte("data1"),
 		Meta:           []byte("meta1"),
 		DataDescriptor: 1,
@@ -175,7 +175,7 @@ func TestMetaDataIteratorSkipsItemsWithoutMeta(t *testing.T) {
 	_, err = ds.Append(item1)
 	assert.NilError(t, err)
 
-	item2 := &Item{
+	item2 := Item{
 		Data:           []byte("data2"),
 		DataDescriptor: 1,
 		// No metadata
@@ -183,7 +183,7 @@ func TestMetaDataIteratorSkipsItemsWithoutMeta(t *testing.T) {
 	_, err = ds.Append(item2)
 	assert.NilError(t, err)
 
-	item3 := &Item{
+	item3 := Item{
 		Data:           []byte("data3"),
 		Meta:           []byte("meta3"),
 		DataDescriptor: 1,
@@ -222,7 +222,7 @@ func TestVectorsIterator(t *testing.T) {
 	}
 
 	for _, vec := range testVectors {
-		item := &Item{
+		item := Item{
 			Data:           []byte("test"),
 			DataDescriptor: 1,
 			Vector:         vec,
@@ -270,7 +270,7 @@ func TestVectorsIteratorEarlyBreak(t *testing.T) {
 
 	// Add items with vectors
 	for i := 0; i < 10; i++ {
-		item := &Item{
+		item := Item{
 			Data:           []byte("test"),
 			DataDescriptor: 1,
 			Vector:         []float32{float32(i), float32(i + 1), float32(i + 2)},
@@ -302,7 +302,7 @@ func TestIteratorsAfterFlush(t *testing.T) {
 	// Add items
 	numItems := 5
 	for i := 0; i < numItems; i++ {
-		item := &Item{
+		item := Item{
 			Data:           []byte("data"),
 			Meta:           []byte("meta"),
 			DataDescriptor: 1,
@@ -344,7 +344,7 @@ func TestIteratorsOnClosedDataset(t *testing.T) {
 	assert.NilError(t, err)
 
 	// Add an item
-	item := &Item{
+	item := Item{
 		Data:           []byte("test"),
 		Meta:           []byte("meta"),
 		DataDescriptor: 1,
@@ -384,7 +384,7 @@ func TestDataIteratorWithEmptyData(t *testing.T) {
 	defer ds.Close()
 
 	// Add item with empty data
-	item := &Item{
+	item := Item{
 		Data:           []byte{},
 		DataDescriptor: 1,
 	}
@@ -411,7 +411,7 @@ func TestMultipleIteratorsConcurrently(t *testing.T) {
 	// Add items
 	numItems := 5
 	for i := 0; i < numItems; i++ {
-		item := &Item{
+		item := Item{
 			Data:           []byte("data"),
 			Meta:           []byte("meta"),
 			DataDescriptor: 1,

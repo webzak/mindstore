@@ -87,7 +87,7 @@ func TestOptionsWithLargeValues(t *testing.T) {
 	assert.NotNil(t, ds, "dataset should be created with large options")
 
 	// Verify it can still append data
-	item := &Item{
+	item := Item{
 		Data:           []byte("test data"),
 		DataDescriptor: 1,
 	}
@@ -135,16 +135,16 @@ func TestOptionsVectorSize(t *testing.T) {
 			}
 
 			// Append item with vector
-			item := &Item{
+			item := Item{
 				Data:           []byte("test"),
 				DataDescriptor: 1,
 				Vector:         tt.testVector,
 			}
-			id, err := ds.Append(item)
+			res, err := ds.Append(item)
 			assert.NilError(t, err)
 
 			// Read back and verify
-			retrieved, err := ds.Read(id, ReadVector)
+			retrieved, err := ds.Read(res.ID, ReadVector)
 			assert.NilError(t, err)
 			assert.DeepEqual(t, tt.testVector, retrieved.Vector)
 		})
@@ -170,7 +170,7 @@ func TestOptionsBufferSizes(t *testing.T) {
 
 	// Append multiple items to trigger buffer flushes
 	for i := 0; i < 10; i++ {
-		item := &Item{
+		item := Item{
 			Data:           []byte("test data"),
 			Meta:           []byte("test meta"),
 			DataDescriptor: 1,
@@ -216,11 +216,11 @@ func TestOptionsIndependence(t *testing.T) {
 	defer ds2.Close()
 
 	// Both datasets should work independently
-	item1 := &Item{Data: []byte("data1"), DataDescriptor: 1}
+	item1 := Item{Data: []byte("data1"), DataDescriptor: 1}
 	_, err = ds1.Append(item1)
 	assert.NilError(t, err)
 
-	item2 := &Item{Data: []byte("data2"), DataDescriptor: 2}
+	item2 := Item{Data: []byte("data2"), DataDescriptor: 2}
 	_, err = ds2.Append(item2)
 	assert.NilError(t, err)
 

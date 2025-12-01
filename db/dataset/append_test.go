@@ -11,19 +11,19 @@ func TestAppend(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		item       *Item
+		item       Item
 		vectorSize int
 	}{
 		{
 			name: "append data only",
-			item: &Item{
+			item: Item{
 				Data:           []byte("test data"),
 				DataDescriptor: 1,
 			},
 		},
 		{
 			name: "append with metadata",
-			item: &Item{
+			item: Item{
 				Data:           []byte("test data"),
 				Meta:           []byte("test metadata"),
 				DataDescriptor: 1,
@@ -32,7 +32,7 @@ func TestAppend(t *testing.T) {
 		},
 		{
 			name: "append with vector",
-			item: &Item{
+			item: Item{
 				Data:           []byte("test data"),
 				DataDescriptor: 1,
 				Vector:         []float32{1.0, 2.0, 3.0, 4.0},
@@ -41,7 +41,7 @@ func TestAppend(t *testing.T) {
 		},
 		{
 			name: "append with tags",
-			item: &Item{
+			item: Item{
 				Data:           []byte("test data"),
 				DataDescriptor: 1,
 				Tags:           []string{"tag1", "tag2", "tag3"},
@@ -50,7 +50,7 @@ func TestAppend(t *testing.T) {
 
 		{
 			name: "append complete item",
-			item: &Item{
+			item: Item{
 				Data:           []byte("complete data"),
 				Meta:           []byte("complete metadata"),
 				DataDescriptor: 3,
@@ -64,7 +64,7 @@ func TestAppend(t *testing.T) {
 
 		{
 			name: "append empty data",
-			item: &Item{
+			item: Item{
 				Data:           []byte{},
 				DataDescriptor: 1,
 			},
@@ -82,16 +82,18 @@ func TestAppend(t *testing.T) {
 			assert.NilError(t, err)
 			defer ds.Close()
 
-			id, err := ds.Append(tt.item)
+			result, err := ds.Append(tt.item)
 			assert.NilError(t, err)
 
-			// Verify ID is valid
-			if id < 0 {
-				t.Errorf("expected valid ID, got %d", id)
+			// Verify result is not nil
+			if result == nil {
+				t.Fatal("expected result item, got nil")
 			}
 
-			// Verify item.ID was updated
-			assert.Equal(t, id, tt.item.ID)
+			// Verify ID is valid
+			if result.ID < 0 {
+				t.Errorf("expected valid ID, got %d", result.ID)
+			}
 
 			// Verify count increased
 			expectedCount := 1
@@ -111,13 +113,13 @@ func TestAppendMultipleItems(t *testing.T) {
 
 	// Append multiple items
 	for i := 0; i < numItems; i++ {
-		item := &Item{
+		item := Item{
 			Data:           []byte("test data"),
 			DataDescriptor: uint8(i % 256),
 		}
-		id, err := ds.Append(item)
+		result, err := ds.Append(item)
 		assert.NilError(t, err)
-		ids[i] = id
+		ids[i] = result.ID
 	}
 
 	// Verify all IDs are unique and sequential
@@ -136,23 +138,23 @@ func TestAppendWithVectorEmptySlice(t *testing.T) {
 	defer ds.Close()
 
 	// Append with empty vector slice (should not error)
-	item := &Item{
+	item := Item{
 		Data:           []byte("test data"),
 		DataDescriptor: 1,
 		Vector:         []float32{},
 	}
-	id, err := ds.Append(item)
+	result, err := ds.Append(item)
 	assert.NilError(t, err)
 
 	// Append with nil vector (should not error)
-	item2 := &Item{
+	item2 := Item{
 		Data:           []byte("test data 2"),
 		DataDescriptor: 1,
 		Vector:         nil,
 	}
-	id2, err := ds.Append(item2)
+	result2, err := ds.Append(item2)
 	assert.NilError(t, err)
-	assert.Equal(t, id+1, id2)
+	assert.Equal(t, result.ID+1, result2.ID)
 }
 
 func TestAppendWithEmptyTags(t *testing.T) {
@@ -162,7 +164,7 @@ func TestAppendWithEmptyTags(t *testing.T) {
 	defer ds.Close()
 
 	// Append with empty tags slice
-	item := &Item{
+	item := Item{
 		Data:           []byte("test data"),
 		DataDescriptor: 1,
 		Tags:           []string{},
@@ -171,7 +173,7 @@ func TestAppendWithEmptyTags(t *testing.T) {
 	assert.NilError(t, err)
 
 	// Append with nil tags
-	item2 := &Item{
+	item2 := Item{
 		Data:           []byte("test data 2"),
 		DataDescriptor: 1,
 		Tags:           nil,
@@ -187,7 +189,7 @@ func TestAppendWithGroupNilOrZero(t *testing.T) {
 	defer ds.Close()
 
 	// Append with no group (GroupID = 0)
-	item := &Item{
+	item := Item{
 		Data:           []byte("test data"),
 		DataDescriptor: 1,
 		GroupID:        0,
@@ -196,7 +198,7 @@ func TestAppendWithGroupNilOrZero(t *testing.T) {
 	assert.NilError(t, err)
 
 	// Append with group ID 0 (should not assign to group)
-	item2 := &Item{
+	item2 := Item{
 		Data:           []byte("test data 2"),
 		DataDescriptor: 1,
 		GroupID:        0,
@@ -214,13 +216,13 @@ func TestAppendSequentialIDs(t *testing.T) {
 
 	// Append items and verify IDs are sequential starting from 0
 	for i := 0; i < 10; i++ {
-		item := &Item{
+		item := Item{
 			Data:           []byte("test"),
 			DataDescriptor: 1,
 		}
-		id, err := ds.Append(item)
+		result, err := ds.Append(item)
 		assert.NilError(t, err)
-		assert.Equal(t, i, id)
+		assert.Equal(t, i, result.ID)
 	}
 }
 
@@ -232,7 +234,7 @@ func TestAppendAfterFlush(t *testing.T) {
 
 	// Append some items
 	for i := 0; i < 5; i++ {
-		item := &Item{Data: []byte("test")}
+		item := Item{Data: []byte("test")}
 		_, err := ds.Append(item)
 		assert.NilError(t, err)
 	}
@@ -242,10 +244,10 @@ func TestAppendAfterFlush(t *testing.T) {
 
 	// Append more items
 	for i := 5; i < 10; i++ {
-		item := &Item{Data: []byte("test")}
-		id, err := ds.Append(item)
+		item := Item{Data: []byte("test")}
+		result, err := ds.Append(item)
 		assert.NilError(t, err)
-		assert.Equal(t, i, id)
+		assert.Equal(t, i, result.ID)
 	}
 
 	assert.Equal(t, 10, ds.Count())

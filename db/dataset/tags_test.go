@@ -13,29 +13,29 @@ func TestAddTags(t *testing.T) {
 	defer ds.Close()
 
 	// Append an item
-	item := &Item{
+	item := Item{
 		Data:           []byte("test data"),
 		DataDescriptor: 1,
 	}
-	id, err := ds.Append(item)
+	res, err := ds.Append(item)
 	assert.NilError(t, err)
 
 	// Add single tag
-	err = ds.AddTags(id, "tag1")
+	err = ds.AddTags(res.ID, "tag1")
 	assert.NilError(t, err)
 
 	// Verify tag was added
-	tags, err := ds.GetTagsByID(id)
+	tags, err := ds.GetTagsByID(res.ID)
 	assert.NilError(t, err)
 	assert.Equal(t, 1, len(tags))
 	assert.Equal(t, "tag1", tags[0])
 
 	// Add multiple tags at once
-	err = ds.AddTags(id, "tag2", "tag3", "tag4")
+	err = ds.AddTags(res.ID, "tag2", "tag3", "tag4")
 	assert.NilError(t, err)
 
 	// Verify all tags
-	tags, err = ds.GetTagsByID(id)
+	tags, err = ds.GetTagsByID(res.ID)
 	assert.NilError(t, err)
 	assert.Equal(t, 4, len(tags))
 }
@@ -64,41 +64,41 @@ func TestRemoveTags(t *testing.T) {
 	defer ds.Close()
 
 	// Append item with tags
-	item := &Item{
+	item := Item{
 		Data:           []byte("test data"),
 		DataDescriptor: 1,
 		Tags:           []string{"tag1", "tag2", "tag3", "tag4"},
 	}
-	id, err := ds.Append(item)
+	res, err := ds.Append(item)
 	assert.NilError(t, err)
 
 	// Verify all tags exist
-	tags, err := ds.GetTagsByID(id)
+	tags, err := ds.GetTagsByID(res.ID)
 	assert.NilError(t, err)
 	assert.Equal(t, 4, len(tags))
 
 	// Remove single tag
-	err = ds.RemoveTags(id, "tag2")
+	err = ds.RemoveTags(res.ID, "tag2")
 	assert.NilError(t, err)
 
-	tags, err = ds.GetTagsByID(id)
+	tags, err = ds.GetTagsByID(res.ID)
 	assert.NilError(t, err)
 	assert.Equal(t, 3, len(tags))
 
 	// Remove multiple tags
-	err = ds.RemoveTags(id, "tag1", "tag3")
+	err = ds.RemoveTags(res.ID, "tag1", "tag3")
 	assert.NilError(t, err)
 
-	tags, err = ds.GetTagsByID(id)
+	tags, err = ds.GetTagsByID(res.ID)
 	assert.NilError(t, err)
 	assert.Equal(t, 1, len(tags))
 	assert.Equal(t, "tag4", tags[0])
 
 	// Remove last tag
-	err = ds.RemoveTags(id, "tag4")
+	err = ds.RemoveTags(res.ID, "tag4")
 	assert.NilError(t, err)
 
-	tags, err = ds.GetTagsByID(id)
+	tags, err = ds.GetTagsByID(res.ID)
 	assert.NilError(t, err)
 	assert.Equal(t, 0, len(tags))
 }
@@ -140,14 +140,14 @@ func TestGetIDsByTag(t *testing.T) {
 
 	ids := make([]int, len(items))
 	for i, itemData := range items {
-		item := &Item{
+		item := Item{
 			Data:           itemData.data,
 			DataDescriptor: 1,
 			Tags:           itemData.tags,
 		}
-		id, err := ds.Append(item)
+		res, err := ds.Append(item)
 		assert.NilError(t, err)
-		ids[i] = id
+		ids[i] = res.ID
 	}
 
 	// Get IDs by common tag
@@ -178,12 +178,12 @@ func TestGetIDsByTagCaseInsensitive(t *testing.T) {
 	defer ds.Close()
 
 	// Add item with mixed-case tag
-	item := &Item{
+	item := Item{
 		Data:           []byte("test"),
 		DataDescriptor: 1,
 		Tags:           []string{"MixedCase"},
 	}
-	id, err := ds.Append(item)
+	res, err := ds.Append(item)
 	assert.NilError(t, err)
 
 	// Search with different case variations
@@ -192,7 +192,7 @@ func TestGetIDsByTagCaseInsensitive(t *testing.T) {
 		ids, err := ds.GetIDsByTag(tagVariant)
 		assert.NilError(t, err)
 		assert.Equal(t, 1, len(ids))
-		assert.Equal(t, id, ids[0])
+		assert.Equal(t, res.ID, ids[0])
 	}
 }
 
@@ -204,16 +204,16 @@ func TestGetTagsByID(t *testing.T) {
 
 	// Append item with tags
 	expectedTags := []string{"tag1", "tag2", "tag3"}
-	item := &Item{
+	item := Item{
 		Data:           []byte("test data"),
 		DataDescriptor: 1,
 		Tags:           expectedTags,
 	}
-	id, err := ds.Append(item)
+	res, err := ds.Append(item)
 	assert.NilError(t, err)
 
 	// Get tags by ID
-	tags, err := ds.GetTagsByID(id)
+	tags, err := ds.GetTagsByID(res.ID)
 	assert.NilError(t, err)
 	assert.Equal(t, len(expectedTags), len(tags))
 	assert.DeepEqual(t, expectedTags, tags)
@@ -243,15 +243,15 @@ func TestGetTagsByIDNoTags(t *testing.T) {
 	defer ds.Close()
 
 	// Append item without tags
-	item := &Item{
+	item := Item{
 		Data:           []byte("test data"),
 		DataDescriptor: 1,
 	}
-	id, err := ds.Append(item)
+	res, err := ds.Append(item)
 	assert.NilError(t, err)
 
 	// Get tags - should return empty slice
-	tags, err := ds.GetTagsByID(id)
+	tags, err := ds.GetTagsByID(res.ID)
 	assert.NilError(t, err)
 	assert.Equal(t, 0, len(tags))
 }
@@ -263,27 +263,27 @@ func TestTagsAfterFlush(t *testing.T) {
 	defer ds.Close()
 
 	// Add item with tags
-	item := &Item{
+	item := Item{
 		Data:           []byte("test data"),
 		DataDescriptor: 1,
 		Tags:           []string{"tag1", "tag2"},
 	}
-	id, err := ds.Append(item)
+	res, err := ds.Append(item)
 	assert.NilError(t, err)
 
 	// Flush
 	assert.NilError(t, ds.Flush())
 
 	// Verify tags still accessible
-	tags, err := ds.GetTagsByID(id)
+	tags, err := ds.GetTagsByID(res.ID)
 	assert.NilError(t, err)
 	assert.Equal(t, 2, len(tags))
 
 	// Add more tags after flush
-	err = ds.AddTags(id, "tag3")
+	err = ds.AddTags(res.ID, "tag3")
 	assert.NilError(t, err)
 
-	tags, err = ds.GetTagsByID(id)
+	tags, err = ds.GetTagsByID(res.ID)
 	assert.NilError(t, err)
 	assert.Equal(t, 3, len(tags))
 }
@@ -300,14 +300,14 @@ func TestMultipleItemsSameTags(t *testing.T) {
 	ids := make([]int, numItems)
 
 	for i := 0; i < numItems; i++ {
-		item := &Item{
+		item := Item{
 			Data:           []byte("test"),
 			DataDescriptor: 1,
 			Tags:           []string{sharedTag},
 		}
-		id, err := ds.Append(item)
+		res, err := ds.Append(item)
 		assert.NilError(t, err)
-		ids[i] = id
+		ids[i] = res.ID
 	}
 
 	// Get all IDs with the shared tag
@@ -324,21 +324,21 @@ func TestAddDuplicateTag(t *testing.T) {
 	defer ds.Close()
 
 	// Add item with tag
-	item := &Item{
+	item := Item{
 		Data:           []byte("test"),
 		DataDescriptor: 1,
 		Tags:           []string{"tag1"},
 	}
-	id, err := ds.Append(item)
+	res, err := ds.Append(item)
 	assert.NilError(t, err)
 
 	// Try to add same tag again
-	err = ds.AddTags(id, "tag1")
+	err = ds.AddTags(res.ID, "tag1")
 	assert.NilError(t, err)
 
 	// The behavior depends on the underlying tags implementation
 	// but it should not error
-	tags, err := ds.GetTagsByID(id)
+	tags, err := ds.GetTagsByID(res.ID)
 	assert.NilError(t, err)
 	if len(tags) == 0 {
 		t.Error("expected at least one tag")

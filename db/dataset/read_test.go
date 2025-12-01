@@ -15,7 +15,7 @@ func TestRead(t *testing.T) {
 	defer ds.Close()
 
 	// Create test item with all fields
-	original := &Item{
+	original := Item{
 		Data:           []byte("test data"),
 		Meta:           []byte("test metadata"),
 		DataDescriptor: 1,
@@ -25,7 +25,7 @@ func TestRead(t *testing.T) {
 		Tags:           []string{"tag1", "tag2"},
 	}
 
-	id, err := ds.Append(original)
+	res, err := ds.Append(original)
 	assert.NilError(t, err)
 
 	tests := []struct {
@@ -113,12 +113,12 @@ func TestRead(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			item, err := ds.Read(id, tt.opts)
+			item, err := ds.Read(res.ID, tt.opts)
 			assert.NilError(t, err)
 			assert.NotNil(t, item, "expected non-nil item")
 
 			// Always check index fields
-			assert.Equal(t, id, item.ID)
+			assert.Equal(t, res.ID, item.ID)
 			assert.Equal(t, original.DataDescriptor, item.DataDescriptor)
 			assert.Equal(t, original.MetaDescriptor, item.MetaDescriptor)
 			assert.Equal(t, original.Flags, item.Flags)
@@ -190,18 +190,18 @@ func TestReadAfterFlush(t *testing.T) {
 
 	// Append items
 	data := []byte("test data")
-	item := &Item{
+	item := Item{
 		Data:           data,
 		DataDescriptor: 1,
 	}
-	id, err := ds.Append(item)
+	res, err := ds.Append(item)
 	assert.NilError(t, err)
 
 	// Flush
 	assert.NilError(t, ds.Flush())
 
 	// Read after flush
-	retrieved, err := ds.Read(id, ReadData)
+	retrieved, err := ds.Read(res.ID, ReadData)
 	assert.NilError(t, err)
 	assert.DeepEqual(t, data, retrieved.Data)
 }
@@ -219,7 +219,7 @@ func TestReadMultipleItems(t *testing.T) {
 	for i := 0; i < numItems; i++ {
 		data := []byte("test data " + string(rune('A'+i%26)))
 		expectedData[i] = data
-		item := &Item{
+		item := Item{
 			Data:           data,
 			DataDescriptor: uint8(i),
 		}
@@ -243,15 +243,15 @@ func TestReadWithEmptyData(t *testing.T) {
 	defer ds.Close()
 
 	// Append item with empty data
-	item := &Item{
+	item := Item{
 		Data:           []byte{},
 		DataDescriptor: 1,
 	}
-	id, err := ds.Append(item)
+	res, err := ds.Append(item)
 	assert.NilError(t, err)
 
 	// Read it back
-	retrieved, err := ds.Read(id, ReadData)
+	retrieved, err := ds.Read(res.ID, ReadData)
 	assert.NilError(t, err)
 	assert.DeepEqual(t, []byte{}, retrieved.Data)
 }
@@ -263,15 +263,15 @@ func TestReadWithNoVector(t *testing.T) {
 	defer ds.Close()
 
 	// Append item without vector
-	item := &Item{
+	item := Item{
 		Data:           []byte("test"),
 		DataDescriptor: 1,
 	}
-	id, err := ds.Append(item)
+	res, err := ds.Append(item)
 	assert.NilError(t, err)
 
 	// Read with vector flag - should not error but vector should be nil/empty
-	retrieved, err := ds.Read(id, ReadVector)
+	retrieved, err := ds.Read(res.ID, ReadVector)
 	assert.NilError(t, err)
 	if retrieved.Vector != nil && len(retrieved.Vector) > 0 {
 		t.Errorf("expected nil or empty vector, got %v", retrieved.Vector)
@@ -285,15 +285,15 @@ func TestReadWithNoTags(t *testing.T) {
 	defer ds.Close()
 
 	// Append item without tags
-	item := &Item{
+	item := Item{
 		Data:           []byte("test"),
 		DataDescriptor: 1,
 	}
-	id, err := ds.Append(item)
+	res, err := ds.Append(item)
 	assert.NilError(t, err)
 
 	// Read with tags flag
-	retrieved, err := ds.Read(id, ReadTags)
+	retrieved, err := ds.Read(res.ID, ReadTags)
 	assert.NilError(t, err)
 	assert.DeepEqual(t, []string{}, retrieved.Tags)
 }
@@ -305,15 +305,15 @@ func TestReadWithNoGroup(t *testing.T) {
 	defer ds.Close()
 
 	// Append item without group
-	item := &Item{
+	item := Item{
 		Data:           []byte("test"),
 		DataDescriptor: 1,
 	}
-	id, err := ds.Append(item)
+	res, err := ds.Append(item)
 	assert.NilError(t, err)
 
 	// Read with group flag
-	retrieved, err := ds.Read(id, ReadGroup)
+	retrieved, err := ds.Read(res.ID, ReadGroup)
 	assert.NilError(t, err)
 	if retrieved.GroupID != 0 {
 		t.Errorf("expected GroupID = 0, got %d", retrieved.GroupID)

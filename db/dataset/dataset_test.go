@@ -105,7 +105,7 @@ func TestOperationsOnClosedDataset(t *testing.T) {
 	ds.Close()
 
 	// Test various operations on closed dataset
-	item := &Item{Data: []byte("test")}
+	item := Item{Data: []byte("test")}
 
 	_, err = ds.Append(item)
 	assert.ErrorIs(t, ErrDatasetClosed, err)
@@ -141,7 +141,7 @@ func TestFlush(t *testing.T) {
 	defer ds.Close()
 
 	// Add some data
-	item := &Item{
+	item := Item{
 		Data:           []byte("test data"),
 		Meta:           []byte("test meta"),
 		DataDescriptor: 1,
@@ -168,7 +168,7 @@ func TestTruncate(t *testing.T) {
 
 	// Add some items
 	for i := 0; i < 10; i++ {
-		item := &Item{
+		item := Item{
 			Data:           []byte("test data"),
 			DataDescriptor: 1,
 		}
@@ -196,7 +196,7 @@ func TestCount(t *testing.T) {
 
 	// Add items and verify count
 	for i := 1; i <= 5; i++ {
-		item := &Item{Data: []byte("test")}
+		item := Item{Data: []byte("test")}
 		_, err = ds.Append(item)
 		assert.NilError(t, err)
 		assert.Equal(t, i, ds.Count())
@@ -215,7 +215,7 @@ func TestIsPersisted(t *testing.T) {
 	}
 
 	// Add data - may or may not be persisted depending on buffer size
-	item := &Item{Data: []byte("test")}
+	item := Item{Data: []byte("test")}
 	_, err = ds.Append(item)
 	assert.NilError(t, err)
 

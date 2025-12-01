@@ -68,8 +68,8 @@ func (c *Dataset) Read(id int, opts ReadOptions) (*Item, error) {
 		item.Data = payload
 	}
 
-	// Read metadata if requested and enabled
-	if opts.has(ReadMeta) && c.meta != nil {
+	// Read metadata if requested
+	if opts.has(ReadMeta) {
 		payload, err := c.meta.Read(row.MetaOffset, row.MetaSize)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read metadata: %w", err)
@@ -77,8 +77,8 @@ func (c *Dataset) Read(id int, opts ReadOptions) (*Item, error) {
 		item.Meta = payload
 	}
 
-	// Read vector if requested and enabled
-	if opts.has(ReadVector) && c.vectors != nil {
+	// Read vector if requested
+	if opts.has(ReadVector) {
 		// Only try to read vector if one was appended for this item
 		// The vector count may be less than the index count if some items don't have vectors
 		if id < c.vectors.Count() {
@@ -90,8 +90,8 @@ func (c *Dataset) Read(id int, opts ReadOptions) (*Item, error) {
 		}
 	}
 
-	// Read tags if requested and enabled
-	if opts.has(ReadTags) && c.tags != nil {
+	// Read tags if requested
+	if opts.has(ReadTags) {
 		item.Tags, err = c.tags.GetTags(id)
 		if err != nil {
 			return nil, err
@@ -101,8 +101,8 @@ func (c *Dataset) Read(id int, opts ReadOptions) (*Item, error) {
 		}
 	}
 
-	// Read group information if requested and enabled
-	if opts.has(ReadGroup) && c.groups != nil {
+	// Read group information if requested
+	if opts.has(ReadGroup) {
 		groupID, err := c.groups.GetGroup(id) // -1 means no group assinged
 		if err != nil {
 			return nil, err
