@@ -40,13 +40,11 @@ type Options struct {
 // New creates a new vectors storage
 func New(path string, opt Options) (*Vectors, error) {
 	storage := storage.NewFile(path)
-	if err := storage.Init(); err != nil {
+	if err := storage.Init(false); err != nil {
 		return nil, err
 	}
-	size, err := storage.Size()
-	if err != nil {
-		return nil, err
-	}
+	// If file doesn't exist yet (lazy creation), Size() will return error - just use 0
+	size, _ := storage.Size()
 	v := Vectors{
 		storage:       storage,
 		appendBuffer:  make([][]float32, 0),
@@ -119,7 +117,7 @@ func (v *Vectors) Close() error {
 // Truncate removes all vectors from storage
 func (v *Vectors) Truncate() error {
 	// Truncate the storage file to zero size
-	if err := v.storage.Truncate(0); err != nil {
+	if err := v.storage.Truncate(); err != nil {
 		return err
 	}
 
@@ -286,7 +284,7 @@ func (v *Vectors) Delete(indexes []int) error {
 	}
 
 	// Truncate the storage to zero
-	if err := v.storage.Truncate(0); err != nil {
+	if err := v.storage.Truncate(); err != nil {
 		return fmt.Errorf("failed to truncate storage: %w", err)
 	}
 

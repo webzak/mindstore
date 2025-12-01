@@ -35,13 +35,11 @@ type Groups struct {
 // New creates a new groups manager
 func New(path string) (*Groups, error) {
 	storage := storage.NewFile(path)
-	if err := storage.Init(); err != nil {
+	if err := storage.Init(false); err != nil {
 		return nil, err
 	}
-	size, err := storage.Size()
-	if err != nil {
-		return nil, err
-	}
+	// If file doesn't exist yet (lazy creation), Size() will return error - just use 0
+	size, _ := storage.Size()
 	return &Groups{
 		groups:       make(map[int][]Member),
 		indexToGroup: make(map[int]int),
@@ -102,7 +100,7 @@ func (g *Groups) Flush() error {
 	}
 
 	// Truncate file before writing
-	if err := g.storage.Truncate(0); err != nil {
+	if err := g.storage.Truncate(); err != nil {
 		return err
 	}
 
@@ -281,7 +279,7 @@ func (g *Groups) Truncate() error {
 	}
 
 	// Truncate the storage file to zero size
-	if err := g.storage.Truncate(0); err != nil {
+	if err := g.storage.Truncate(); err != nil {
 		return err
 	}
 

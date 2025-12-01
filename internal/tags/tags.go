@@ -33,13 +33,11 @@ type Tags struct {
 // New creates a new tags manager
 func New(path string) (*Tags, error) {
 	storage := storage.NewFile(path)
-	if err := storage.Init(); err != nil {
+	if err := storage.Init(false); err != nil {
 		return nil, err
 	}
-	size, err := storage.Size()
-	if err != nil {
-		return nil, err
-	}
+	// If file doesn't exist yet (lazy creation), Size() will return error - just use 0
+	size, _ := storage.Size()
 	return &Tags{
 		forward:     make(map[string][]int),
 		reverse:     make(map[int][]string),
@@ -51,22 +49,22 @@ func New(path string) (*Tags, error) {
 
 // load loads tags from storage
 func (t *Tags) load() error {
+	// Check if file is empty first (before trying to open reader)
+	size, err := t.storage.Size()
+	if err != nil {
+		return err
+	}
+	if size == 0 {
+		// File doesn't exist or is empty - nothing to load
+		t.isLoaded = true
+		return nil
+	}
 
 	reader, err := t.storage.Reader(0)
 	if err != nil {
 		return err
 	}
 	defer reader.Close()
-
-	// Check if file is empty
-	size, err := t.storage.Size()
-	if err != nil {
-		return err
-	}
-	if size == 0 {
-		t.isLoaded = true
-		return nil
-	}
 
 	decoder := gob.NewDecoder(reader)
 	if err := decoder.Decode(&t.forward); err != nil {
@@ -98,7 +96,7 @@ func (t *Tags) Flush() error {
 		return nil
 	}
 	// Truncate file before writing
-	if err := t.storage.Truncate(0); err != nil {
+	if err := t.storage.Truncate(); err != nil {
 		return err
 	}
 
@@ -304,7 +302,7 @@ func (t *Tags) Truncate() error {
 	}
 
 	// Truncate the storage file to zero size
-	if err := t.storage.Truncate(0); err != nil {
+	if err := t.storage.Truncate(); err != nil {
 		return err
 	}
 

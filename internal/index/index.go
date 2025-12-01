@@ -60,7 +60,7 @@ type Index struct {
 // New creates a new index
 func New(path string, opt Options) (*Index, error) {
 	storage := storage.NewFile(path)
-	if err := storage.Init(); err != nil {
+	if err := storage.Init(true); err != nil {
 		return nil, err
 	}
 	ret := Index{
@@ -76,10 +76,8 @@ func New(path string, opt Options) (*Index, error) {
 
 // Load loads index from storage
 func (idx *Index) load() error {
-	size, err := idx.storage.Size()
-	if err != nil {
-		return err
-	}
+	// If file doesn't exist yet (lazy creation), Size() will return error - just use 0
+	size, _ := idx.storage.Size()
 	if size == 0 {
 		return nil
 	}
@@ -259,7 +257,7 @@ func (idx *Index) ResetFlags(n int, flags uint8) error {
 // Truncate truncates the index by truncating storage and clearing all rows
 func (idx *Index) Truncate() error {
 	// Truncate the storage to zero bytes
-	if err := idx.storage.Truncate(0); err != nil {
+	if err := idx.storage.Truncate(); err != nil {
 		return err
 	}
 
@@ -290,7 +288,7 @@ func (idx *Index) Optimise() error {
 	}
 
 	// Truncate the storage to zero
-	if err := idx.storage.Truncate(0); err != nil {
+	if err := idx.storage.Truncate(); err != nil {
 		return err
 	}
 

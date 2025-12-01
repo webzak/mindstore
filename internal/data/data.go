@@ -31,15 +31,13 @@ type Data struct {
 // New creates a new data storage
 func New(path string, opt Options) (*Data, error) {
 	storage := storage.NewFile(path)
-	if err := storage.Init(); err != nil {
+	if err := storage.Init(false); err != nil {
 		return nil, err
 	}
 
 	// Calculate persistedSize from file
-	persistedSize, err := storage.Size()
-	if err != nil {
-		return nil, err
-	}
+	// If file doesn't exist yet (lazy creation), Size() will return error - just use 0
+	persistedSize, _ := storage.Size()
 
 	return &Data{
 		storage:             storage,
@@ -106,7 +104,7 @@ func (d *Data) Close() error {
 // Truncate removes all data from storage
 func (d *Data) Truncate() error {
 	// Truncate the storage file to zero size
-	if err := d.storage.Truncate(0); err != nil {
+	if err := d.storage.Truncate(); err != nil {
 		return err
 	}
 

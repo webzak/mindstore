@@ -29,12 +29,18 @@ func NewFile(path string) *File {
 	return &File{path}
 }
 
-// Init looks up for the file path, if file is not created it creates new one
-func (f *File) Init() error {
+// Init validates the file path and optionally creates an empty file
+// If create is true, creates an empty file if it doesn't exist
+// If create is false, only validates the path (file will be created on first write)
+func (f *File) Init(create bool) error {
 	stat, err := os.Stat(f.path)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			return err
+		}
+		// File doesn't exist
+		if !create {
+			return nil
 		}
 	} else {
 		if stat.IsDir() {
@@ -54,9 +60,14 @@ func (f *File) Init() error {
 }
 
 // Size returns file size in bytes
+// If the file doesn't exist (lazy creation), returns 0
 func (f *File) Size() (int64, error) {
 	s, err := os.Stat(f.path)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			// File doesn't exist yet (lazy creation) - size is 0
+			return 0, nil
+		}
 		return 0, fmt.Errorf("%w: %s", ErrFileStat, err.Error())
 	}
 	return s.Size(), nil
@@ -114,12 +125,15 @@ func (f *File) Reader(offset int64) (*os.File, error) {
 	return fd, nil
 }
 
-// Truncate truncates the file to the specified size
-func (f *File) Truncate(size int64) error {
-	if size < 0 {
-		return ErrFileInvalidOffset
+// Truncate truncates the file to zero bytes
+// If the file doesn't exist, this is a no-op (file will be created empty on first write)
+func (f *File) Truncate() error {
+	err := os.Truncate(f.path, 0)
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		// File doesn't exist - no need to truncate, it will be created empty on first write
+		return nil
 	}
-	return os.Truncate(f.path, size)
+	return err
 }
 
 // Path returns file path
