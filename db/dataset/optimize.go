@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/webzak/mindstore/internal/data"
+	"github.com/webzak/mindstore/internal/groups"
 	"github.com/webzak/mindstore/internal/index"
 )
 
@@ -376,11 +377,67 @@ func (c *Dataset) remapTagsAfterOptimization(oldToNewID map[int]int) error {
 
 // remapGroupsAfterOptimization updates group references to use new compacted IDs
 func (c *Dataset) remapGroupsAfterOptimization(oldToNewID map[int]int) error {
-	// For groups, the renumberingis handled automatically since groups are stored by the
-	// internal group package. We just need to ensure groups are flushed.
-	// Any references to removed records will be automatically invalid.
-	// Since this is a simplification, we'll just return nil for now.
-	// A more complex implementation would rebuild groups similar to tags.
+	// Get all groups with their full member information (including Place)
+	allGroups, err := c.groups.GetAllGroupsWithMembers()
+	if err != nil {
+		return fmt.Errorf("failed to get all groups: %w", err)
+	}
+
+	// If no groups exist, nothing to remap
+	if len(allGroups) == 0 {
+		return nil
+	}
+
+	// Find max groupID to restore after truncate (preserves group ID stability)
+	maxGroupID := 0
+	for groupID := range allGroups {
+		if groupID > maxGroupID {
+			maxGroupID = groupID
+		}
+	}
+
+	// Build remapped structure: GroupID -> []Member (with new IndexIDs, same Places)
+	groupToNewMembers := make(map[int][]groups.Member)
+
+	for groupID, members := range allGroups {
+		for _, member := range members {
+			// Remap old IndexID to new IndexID
+			if newID, exists := oldToNewID[member.IndexID]; exists {
+				// Preserve the Place value, update only IndexID
+				newMember := groups.Member{
+					IndexID: newID,
+					Place:   member.Place,
+				}
+				groupToNewMembers[groupID] = append(groupToNewMembers[groupID], newMember)
+			}
+			// If oldID not in map, record was deleted - skip this member
+		}
+	}
+
+	// Truncate groups storage (this resets nextGroupID to 1)
+	if err := c.groups.Truncate(); err != nil {
+		return fmt.Errorf("failed to truncate groups: %w", err)
+	}
+
+	// Restore nextGroupID to preserve group ID stability
+	// This allows Assign() to work with old group IDs
+	c.groups.SetNextGroupID(maxGroupID + 1)
+
+	// Rebuild each group with its remapped members
+	for groupID, members := range groupToNewMembers {
+		// Skip empty groups (all members were deleted)
+		if len(members) == 0 {
+			continue
+		}
+
+		for _, member := range members {
+			if err := c.groups.Assign(groupID, member.IndexID, member.Place); err != nil {
+				return fmt.Errorf("failed to assign member %d to group %d: %w",
+					member.IndexID, groupID, err)
+			}
+		}
+	}
+
 	return nil
 }
 

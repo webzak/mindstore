@@ -301,3 +301,31 @@ func (g *Groups) Close() error {
 	}
 	return nil
 }
+
+// GetAllGroupsWithMembers returns all groups with their full member information
+// Returns a map of GroupID -> []Member
+func (g *Groups) GetAllGroupsWithMembers() (map[int][]Member, error) {
+	if !g.isLoaded {
+		if err := g.load(); err != nil {
+			return nil, err
+		}
+	}
+
+	// Return a deep copy to prevent external modification
+	result := make(map[int][]Member)
+	for groupID, members := range g.groups {
+		membersCopy := make([]Member, len(members))
+		copy(membersCopy, members)
+		result[groupID] = membersCopy
+	}
+
+	return result, nil
+}
+
+// SetNextGroupID sets the next group ID counter.
+// This is used during optimization to preserve group IDs after truncation.
+// The provided value should be maxGroupID + 1 to allow existing group IDs to be reused.
+func (g *Groups) SetNextGroupID(nextID int) {
+	g.nextGroupID = nextID
+	g.isPersisted = false
+}

@@ -109,11 +109,9 @@ Each dataset creates a directory with these files:
 - `Delete()` sets `index.MarkedForRemoval` flag
 - `Optimize()` compacts by removing flagged records
 - **CRITICAL**: After optimization, record IDs change (array compaction causes shifts)
-  - Tags are remapped to new IDs automatically
-  - **BUG**: Groups are NOT remapped (remapGroupsAfterOptimization is unimplemented)
-  - **BUG**: Vectors are NOT remapped, will become misaligned with IDs
-  - External references to IDs become invalid
-  - **This behavior may need to be redesigned to preserve IDs**
+  - Tags, vectors, and groups are automatically remapped to new IDs
+  - External references to IDs become invalid after optimization
+  - Applications should not cache record IDs across optimization calls
 
 **Groups for Ordering**
 - Groups allow ordered relationships between records
@@ -210,13 +208,12 @@ Storage formats are not versioned. Breaking changes require manual migration:
 ## Common Gotchas
 
 1. **File locks persist until Close()** - Always defer `ds.Close()` or locks remain
-2. **Record IDs change after Optimize()** - Don't cache IDs across optimization; tags are remapped but **groups and vectors are not** (known bugs)
+2. **Record IDs change after Optimize()** - Don't cache IDs across optimization; all components (tags, vectors, groups) are automatically remapped to new IDs
 3. **Empty data gets offset -1** - Check for -1 before reading data/meta
 4. **Vector count may be less than index count** - Not all records have vectors
 5. **Groups are 1-indexed** - GroupID 0 means "no group assigned"
 6. **Tags and Groups are lazy-loaded** - First access triggers disk read
 7. **Flushing is component-specific** - Each component tracks its own persistence state
-8. **Optimize() has incomplete implementation** - Group and vector remapping after optimization is not implemented (see db/dataset/optimize.go:301-308)
 
 ## Performance Tuning
 
@@ -230,11 +227,6 @@ Adjust buffer sizes in `dataset.Options`:
 Set to 0 for immediate writes (testing/debugging).
 
 ## Current Limitations & Known Issues
-
-### Known Bugs
-- **Optimize() doesn't remap groups** (optimize.go:301-308) - groups reference old IDs after optimization
-- **Optimize() doesn't remap vectors** - vectors become misaligned with record IDs after compaction
-- **ID stability issue** - IDs change after optimization, breaking external references; consider redesigning to preserve IDs or use tombstones
 
 ### Roadmap Items
 - No hard delete (space reclamation only via Optimize)
