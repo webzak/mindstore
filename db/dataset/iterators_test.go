@@ -443,3 +443,126 @@ func TestMultipleIteratorsConcurrently(t *testing.T) {
 	assert.Equal(t, numItems, metaCount)
 	assert.Equal(t, numItems, vectorCount)
 }
+
+func TestVectorsIteratorSparseVectors(t *testing.T) {
+	tmpDir := t.TempDir()
+	opts := DefaultOptions()
+	opts.VectorSize = 3
+	ds, err := Open(tmpDir, "test_vectors_iterator_sparse", opts)
+	assert.NilError(t, err)
+	defer ds.Close()
+
+	// Add items where only some have vectors
+	// This tests that VectorsIterator returns index IDs, not vector positions
+	testData := []struct {
+		data       []byte
+		vector     []float32
+		hasVector  bool
+		expectedID int
+	}{
+		{[]byte("item0"), []float32{1.0, 2.0, 3.0}, true, 0},  // Index 0, Vector pos 0
+		{[]byte("item1"), nil, false, -1},                     // Index 1, No vector
+		{[]byte("item2"), []float32{4.0, 5.0, 6.0}, true, 2},  // Index 2, Vector pos 1
+		{[]byte("item3"), nil, false, -1},                     // Index 3, No vector
+		{[]byte("item4"), []float32{7.0, 8.0, 9.0}, true, 4},  // Index 4, Vector pos 2
+		{[]byte("item5"), []float32{10.0, 11.0, 12.0}, true, 5}, // Index 5, Vector pos 3
+	}
+
+	for _, td := range testData {
+		item := Item{
+			Data:           td.data,
+			DataDescriptor: 1,
+			Vector:         td.vector,
+		}
+		_, err := ds.Append(item)
+		assert.NilError(t, err)
+	}
+
+	// Collect vectors and their indices
+	type result struct {
+		idx    int
+		vector []float32
+	}
+	var results []result
+
+	for idx, vector := range ds.VectorsIterator() {
+		results = append(results, result{idx: idx, vector: vector})
+	}
+
+	// Should only get 4 vectors (items with hasVector=true)
+	assert.Equal(t, 4, len(results))
+
+	// Verify that we get INDEX IDs, not vector positions
+	// The iterator should return indices 0, 2, 4, 5 (not 0, 1, 2, 3)
+	expectedIndices := []int{0, 2, 4, 5}
+	expectedVectors := [][]float32{
+		{1.0, 2.0, 3.0},
+		{4.0, 5.0, 6.0},
+		{7.0, 8.0, 9.0},
+		{10.0, 11.0, 12.0},
+	}
+
+	for i, res := range results {
+		assert.Equal(t, expectedIndices[i], res.idx)
+		assert.DeepEqual(t, expectedVectors[i], res.vector)
+	}
+}
+
+func TestVectorsIteratorAfterOptimize(t *testing.T) {
+	tmpDir := t.TempDir()
+	opts := DefaultOptions()
+	opts.VectorSize = 3
+	ds, err := Open(tmpDir, "test_vectors_iterator_optimize", opts)
+	assert.NilError(t, err)
+	defer ds.Close()
+
+	// Add items with vectors
+	vectors := [][]float32{
+		{1.0, 2.0, 3.0},
+		{4.0, 5.0, 6.0},
+		{7.0, 8.0, 9.0},
+		{10.0, 11.0, 12.0},
+	}
+
+	for _, vec := range vectors {
+		item := Item{
+			Data:           []byte("test"),
+			DataDescriptor: 1,
+			Vector:         vec,
+		}
+		_, err := ds.Append(item)
+		assert.NilError(t, err)
+	}
+
+	// Delete items at indices 1 and 2
+	err = ds.Delete(1)
+	assert.NilError(t, err)
+	err = ds.Delete(2)
+	assert.NilError(t, err)
+
+	// Optimize - this should compact the dataset
+	err = ds.Optimize()
+	assert.NilError(t, err)
+
+	// After optimization, only 2 items remain (original indices 0 and 3)
+	// They should now be at indices 0 and 1
+	type result struct {
+		idx    int
+		vector []float32
+	}
+	var results []result
+
+	for idx, vector := range ds.VectorsIterator() {
+		results = append(results, result{idx: idx, vector: vector})
+	}
+
+	assert.Equal(t, 2, len(results))
+
+	// After optimization, indices should be 0 and 1 (compacted)
+	assert.Equal(t, 0, results[0].idx)
+	assert.Equal(t, 1, results[1].idx)
+
+	// Vectors should be from original items 0 and 3
+	assert.DeepEqual(t, vectors[0], results[0].vector)
+	assert.DeepEqual(t, vectors[3], results[1].vector)
+}

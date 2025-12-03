@@ -279,3 +279,75 @@ func TestIteratorEmpty(t *testing.T) {
 	}
 	assert.Equal(t, 0, count)
 }
+
+func TestVectorsMap(t *testing.T) {
+	dir := t.TempDir()
+
+	path := filepath.Join(dir, "test.idx")
+	idx, err := New(path, opts)
+	assert.NilError(t, err)
+
+	// Add rows with vectors at different positions
+	idx.Append(Row{Offset: 100, Size: 200, Vector: 0})  // Index 0 -> Vector pos 0
+	idx.Append(Row{Offset: 300, Size: 400, Vector: -1}) // Index 1 -> No vector
+	idx.Append(Row{Offset: 500, Size: 600, Vector: 1})  // Index 2 -> Vector pos 1
+	idx.Append(Row{Offset: 700, Size: 800, Vector: 2})  // Index 3 -> Vector pos 2
+
+	m := idx.VectorsMap()
+
+	// Verify the map has correct mappings
+	assert.Equal(t, 3, len(m))
+	assert.Equal(t, 0, m[0])
+	assert.Equal(t, 2, m[1])
+	assert.Equal(t, 3, m[2])
+}
+
+func TestVectorsMapEmpty(t *testing.T) {
+	dir := t.TempDir()
+
+	path := filepath.Join(dir, "test.idx")
+	idx, err := New(path, opts)
+	assert.NilError(t, err)
+
+	m := idx.VectorsMap()
+	assert.Equal(t, 0, len(m))
+}
+
+func TestVectorsMapNoVectors(t *testing.T) {
+	dir := t.TempDir()
+
+	path := filepath.Join(dir, "test.idx")
+	idx, err := New(path, opts)
+	assert.NilError(t, err)
+
+	// Add rows without vectors (Vector = -1)
+	idx.Append(Row{Offset: 100, Size: 200, Vector: -1})
+	idx.Append(Row{Offset: 300, Size: 400, Vector: -1})
+	idx.Append(Row{Offset: 500, Size: 600, Vector: -1})
+
+	m := idx.VectorsMap()
+	assert.Equal(t, 0, len(m))
+}
+
+func TestVectorsMapAfterPersistence(t *testing.T) {
+	dir := t.TempDir()
+
+	path := filepath.Join(dir, "test.idx")
+	idx, err := New(path, opts)
+	assert.NilError(t, err)
+
+	// Add rows with vectors
+	idx.Append(Row{Offset: 100, Size: 200, Vector: 5})
+	idx.Append(Row{Offset: 300, Size: 400, Vector: -1})
+	idx.Append(Row{Offset: 500, Size: 600, Vector: 10})
+	idx.Flush()
+
+	// Reload index
+	idx2, err := New(path, opts)
+	assert.NilError(t, err)
+
+	m := idx2.VectorsMap()
+	assert.Equal(t, 2, len(m))
+	assert.Equal(t, 0, m[5])
+	assert.Equal(t, 2, m[10])
+}

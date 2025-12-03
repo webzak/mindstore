@@ -1,6 +1,9 @@
 package dataset
 
-import "iter"
+import (
+	"fmt"
+	"iter"
+)
 
 // DataIterator returns an iterator over dataset records that yields (index, data) pairs.
 // This uses Go 1.23's iter.Seq2 for idiomatic range-over-function iteration.
@@ -116,8 +119,18 @@ func (ds *Dataset) VectorsIterator() iter.Seq2[int, []float32] {
 			return
 		}
 
-		for idx, vector := range ds.vectors.Iterator() {
-			if !yield(idx, vector) {
+		// Build reverse mapping from vector position to index ID
+		vectorMap := ds.index.VectorsMap()
+
+		// Iterate over vectors and lookup index ID for each position
+		for vectorPos, vector := range ds.vectors.Iterator() {
+			indexID, ok := vectorMap[int32(vectorPos)]
+			if !ok {
+				// This indicates data corruption - a vector exists but no index row references it
+				panic(fmt.Sprintf("vector at position %d has no corresponding index entry", vectorPos))
+			}
+
+			if !yield(indexID, vector) {
 				return
 			}
 		}

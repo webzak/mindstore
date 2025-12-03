@@ -323,6 +323,19 @@ func (idx *Index) Iterator() iter.Seq2[int, *Row] {
 	}
 }
 
+// VectorsMap returns a mapping from vector position to index ID.
+// This allows reverse lookup when iterating vectors to find which record owns each vector.
+// Returns map[vectorPosition]indexID.
+func (idx *Index) VectorsMap() map[int32]int {
+	m := make(map[int32]int)
+	for i, row := range idx.rows {
+		if row.Vector >= 0 {
+			m[row.Vector] = i
+		}
+	}
+	return m
+}
+
 // Close flushes any unsaved data to storage
 func (idx *Index) Close() error {
 	return idx.Flush()
