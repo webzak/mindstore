@@ -45,12 +45,12 @@ func TestCount(t *testing.T) {
 
 	// Append some vectors
 	vec1 := []float32{1.0, 2.0, 3.0, 4.0}
-	err = v.Append(0, vec1)
+	_, err = v.Append(vec1)
 	assert.NilError(t, err)
 	assert.Equal(t, 1, v.Count())
 
 	vec2 := []float32{5.0, 6.0, 7.0, 8.0}
-	err = v.Append(1, vec2)
+	_, err = v.Append(vec2)
 	assert.NilError(t, err)
 	assert.Equal(t, 2, v.Count())
 }
@@ -70,18 +70,14 @@ func TestAppend(t *testing.T) {
 
 	// Test appending a valid vector
 	vec := []float32{1.0, 2.0, 3.0, 4.0}
-	err = v.Append(0, vec)
+	_, err = v.Append(vec)
 	assert.NilError(t, err)
 	assert.Equal(t, 1, v.Count())
 	assert.Equal(t, false, v.IsPersisted())
 
-	// Test appending with wrong index
-	err = v.Append(5, vec) // Should be index 1
-	assert.NotNilError(t, err)
-
 	// Test appending with wrong vector size
 	wrongVec := []float32{1.0, 2.0}
-	err = v.Append(1, wrongVec)
+	_, err = v.Append(wrongVec)
 	assert.NotNilError(t, err)
 }
 
@@ -104,7 +100,7 @@ func TestGet(t *testing.T) {
 
 	// Add a vector to append buffer
 	vec1 := []float32{1.0, 2.0, 3.0, 4.0}
-	err = v.Append(0, vec1)
+	_, err = v.Append( vec1)
 	assert.NilError(t, err)
 
 	// Get from append buffer
@@ -148,9 +144,9 @@ func TestFlush(t *testing.T) {
 	// Add vectors
 	vec1 := []float32{1.0, 2.0, 3.0, 4.0}
 	vec2 := []float32{5.0, 6.0, 7.0, 8.0}
-	err = v.Append(0, vec1)
+	_, err = v.Append( vec1)
 	assert.NilError(t, err)
-	err = v.Append(1, vec2)
+	_, err = v.Append( vec2)
 	assert.NilError(t, err)
 
 	// Not persisted now
@@ -190,13 +186,13 @@ func TestAutoFlush(t *testing.T) {
 
 	// Add first vector
 	vec1 := []float32{1.0, 2.0, 3.0, 4.0}
-	err = v.Append(0, vec1)
+	_, err = v.Append( vec1)
 	assert.NilError(t, err)
 	assert.Equal(t, false, v.IsPersisted())
 
 	// Add second vector - should trigger auto-flush
 	vec2 := []float32{5.0, 6.0, 7.0, 8.0}
-	err = v.Append(1, vec2)
+	_, err = v.Append( vec2)
 	assert.NilError(t, err)
 	assert.Equal(t, true, v.IsPersisted())
 	assert.Equal(t, 2, v.persistedSize)
@@ -217,7 +213,7 @@ func TestReplace(t *testing.T) {
 
 	// Add and flush a vector
 	vec1 := []float32{1.0, 2.0, 3.0, 4.0}
-	err = v.Append(0, vec1)
+	_, err = v.Append( vec1)
 	assert.NilError(t, err)
 	err = v.Flush()
 	assert.NilError(t, err)
@@ -234,7 +230,7 @@ func TestReplace(t *testing.T) {
 
 	// Add vector to append buffer
 	vec2 := []float32{5.0, 6.0, 7.0, 8.0}
-	err = v.Append(1, vec2)
+	_, err = v.Append( vec2)
 	assert.NilError(t, err)
 
 	// Replace in append buffer
@@ -276,13 +272,13 @@ func TestDelete(t *testing.T) {
 	vec3 := []float32{9.0, 10.0, 11.0, 12.0}
 	vec4 := []float32{13.0, 14.0, 15.0, 16.0}
 
-	err = v.Append(0, vec1)
+	_, err = v.Append( vec1)
 	assert.NilError(t, err)
-	err = v.Append(1, vec2)
+	_, err = v.Append( vec2)
 	assert.NilError(t, err)
-	err = v.Append(2, vec3)
+	_, err = v.Append( vec3)
 	assert.NilError(t, err)
-	err = v.Append(3, vec4)
+	_, err = v.Append( vec4)
 	assert.NilError(t, err)
 	err = v.Flush()
 	assert.NilError(t, err)
@@ -290,7 +286,7 @@ func TestDelete(t *testing.T) {
 	assert.Equal(t, 4, v.Count())
 
 	// Delete middle vectors (index 1 and 2)
-	err = v.Delete([]int{1, 2})
+	err = v.Delete([]int32{1, 2})
 	assert.NilError(t, err)
 
 	// Verify count
@@ -306,11 +302,11 @@ func TestDelete(t *testing.T) {
 	assert.DeepEqual(t, vec4, got1)
 
 	// Test deleting out of bounds
-	err = v.Delete([]int{10})
+	err = v.Delete([]int32{10})
 	assert.NotNilError(t, err)
 
 	// Test deleting empty list
-	err = v.Delete([]int{})
+	err = v.Delete([]int32{})
 	assert.NilError(t, err)
 }
 
@@ -329,15 +325,15 @@ func TestDeleteWithAppendBuffer(t *testing.T) {
 
 	// Add vector to append buffer
 	vec1 := []float32{1.0, 2.0, 3.0, 4.0}
-	err = v.Append(0, vec1)
+	_, err = v.Append( vec1)
 	assert.NilError(t, err)
 
 	// Delete should flush append buffer first
 	vec2 := []float32{5.0, 6.0, 7.0, 8.0}
-	err = v.Append(1, vec2)
+	_, err = v.Append( vec2)
 	assert.NilError(t, err)
 
-	err = v.Delete([]int{0})
+	err = v.Delete([]int32{0})
 	assert.NilError(t, err)
 
 	// Should be persisted after delete
@@ -360,7 +356,7 @@ func TestClose(t *testing.T) {
 
 	// Add vector to append buffer
 	vec1 := []float32{1.0, 2.0, 3.0, 4.0}
-	err = v.Append(0, vec1)
+	_, err = v.Append( vec1)
 	assert.NilError(t, err)
 
 	// Close should flush
@@ -393,7 +389,7 @@ func TestCloseWithReaderFD(t *testing.T) {
 
 	// Add and flush vector
 	vec1 := []float32{1.0, 2.0, 3.0, 4.0}
-	err = v.Append(0, vec1)
+	_, err = v.Append( vec1)
 	assert.NilError(t, err)
 	err = v.Flush()
 	assert.NilError(t, err)
@@ -433,15 +429,15 @@ func TestIterator(t *testing.T) {
 	vec2 := []float32{5.0, 6.0, 7.0, 8.0}
 	vec3 := []float32{9.0, 10.0, 11.0, 12.0}
 
-	err = v.Append(0, vec1)
+	_, err = v.Append( vec1)
 	assert.NilError(t, err)
-	err = v.Append(1, vec2)
+	_, err = v.Append( vec2)
 	assert.NilError(t, err)
 	err = v.Flush()
 	assert.NilError(t, err)
 
 	// Add one to append buffer
-	err = v.Append(2, vec3)
+	_, err = v.Append( vec3)
 	assert.NilError(t, err)
 
 	// Iterate and verify
@@ -493,9 +489,9 @@ func TestIteratorOnlyAppendBuffer(t *testing.T) {
 	vec1 := []float32{1.0, 2.0, 3.0, 4.0}
 	vec2 := []float32{5.0, 6.0, 7.0, 8.0}
 
-	err = v.Append(0, vec1)
+	_, err = v.Append( vec1)
 	assert.NilError(t, err)
-	err = v.Append(1, vec2)
+	_, err = v.Append( vec2)
 	assert.NilError(t, err)
 
 	// Iterate without flushing
@@ -527,9 +523,9 @@ func TestPersistence(t *testing.T) {
 	vec1 := []float32{1.0, 2.0, 3.0, 4.0}
 	vec2 := []float32{5.0, 6.0, 7.0, 8.0}
 
-	err = v.Append(0, vec1)
+	_, err = v.Append( vec1)
 	assert.NilError(t, err)
-	err = v.Append(1, vec2)
+	_, err = v.Append( vec2)
 	assert.NilError(t, err)
 	err = v.Flush()
 	assert.NilError(t, err)
@@ -568,11 +564,11 @@ func TestReaderFDReuse(t *testing.T) {
 	vec2 := []float32{5.0, 6.0, 7.0, 8.0}
 	vec3 := []float32{9.0, 10.0, 11.0, 12.0}
 
-	err = v.Append(0, vec1)
+	_, err = v.Append( vec1)
 	assert.NilError(t, err)
-	err = v.Append(1, vec2)
+	_, err = v.Append( vec2)
 	assert.NilError(t, err)
-	err = v.Append(2, vec3)
+	_, err = v.Append( vec3)
 	assert.NilError(t, err)
 	err = v.Flush()
 	assert.NilError(t, err)

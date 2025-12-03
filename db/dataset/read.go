@@ -78,16 +78,13 @@ func (c *Dataset) Read(id int, opts ReadOptions) (*Item, error) {
 	}
 
 	// Read vector if requested
-	if opts.has(ReadVector) {
-		// Only try to read vector if one was appended for this item
-		// The vector count may be less than the index count if some items don't have vectors
-		if id < c.vectors.Count() {
-			vector, err := c.vectors.Get(id)
-			if err != nil {
-				return nil, fmt.Errorf("failed to read vector: %w", err)
-			}
-			item.Vector = vector
+	if opts.has(ReadVector) && row.Vector >= 0 {
+		// Only try to read vector if this item has one (Vector >= 0)
+		vector, err := c.vectors.Get(row.Vector)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read vector: %w", err)
 		}
+		item.Vector = vector
 	}
 
 	// Read tags if requested

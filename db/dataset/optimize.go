@@ -51,7 +51,12 @@ func (c *Dataset) Optimize() error {
 		return fmt.Errorf("failed to optimize metadata storage: %w", err)
 	}
 
-	// Batch update index with new offsets/sizes
+	// Optimize vector storage
+	if err := c.optimizeVectorStorage(updatedRows); err != nil {
+		return fmt.Errorf("failed to optimize vector storage: %w", err)
+	}
+
+	// Batch update index with new offsets/sizes and vector positions
 	for i, row := range updatedRows {
 		if err := c.index.Replace(i, row); err != nil {
 			return fmt.Errorf("failed to update index row %d: %w", i, err)
@@ -252,6 +257,78 @@ func (c *Dataset) optimizeMetaStorage(tmpPath string, updatedRows []index.Row) e
 		return fmt.Errorf("failed to reopen metadata storage: %w", err)
 	}
 	c.meta = newMeta
+
+	return nil
+}
+
+// optimizeVectorStorage compacts vector storage by removing vectors for deleted records
+func (c *Dataset) optimizeVectorStorage(updatedRows []index.Row) error {
+	// Build list of vector positions to keep (non-deleted records with vectors)
+	type vectorMapping struct {
+		oldPos int32
+		newPos int32
+		rowIdx int
+	}
+	var mappings []vectorMapping
+	newPos := int32(0)
+
+	for idx, row := range updatedRows {
+		// Skip deleted records and records without vectors
+		if row.Flags&index.MarkedForRemoval != 0 || row.Vector < 0 {
+			continue
+		}
+
+		mappings = append(mappings, vectorMapping{
+			oldPos: row.Vector,
+			newPos: newPos,
+			rowIdx: idx,
+		})
+		newPos++
+	}
+
+	// If no vectors to compact, done
+	if len(mappings) == 0 {
+		return nil
+	}
+
+	// Flush vectors to ensure all data is persisted
+	if err := c.vectors.Flush(); err != nil {
+		return fmt.Errorf("failed to flush vectors: %w", err)
+	}
+
+	// Read vectors that we're keeping
+	vectors := make([][]float32, len(mappings))
+	for i, m := range mappings {
+		vec, err := c.vectors.Get(m.oldPos)
+		if err != nil {
+			return fmt.Errorf("failed to read vector at position %d: %w", m.oldPos, err)
+		}
+		vectors[i] = vec
+	}
+
+	// Truncate vector storage
+	if err := c.vectors.Truncate(); err != nil {
+		return fmt.Errorf("failed to truncate vectors: %w", err)
+	}
+
+	// Write vectors back in new order and update index rows
+	for i, m := range mappings {
+		pos, err := c.vectors.Append(vectors[i])
+		if err != nil {
+			return fmt.Errorf("failed to append vector: %w", err)
+		}
+		// Verify position matches expected
+		if pos != m.newPos {
+			return fmt.Errorf("vector position mismatch: expected %d, got %d", m.newPos, pos)
+		}
+		// Update the row with new position
+		updatedRows[m.rowIdx].Vector = pos
+	}
+
+	// Flush the compacted vectors
+	if err := c.vectors.Flush(); err != nil {
+		return fmt.Errorf("failed to flush compacted vectors: %w", err)
+	}
 
 	return nil
 }

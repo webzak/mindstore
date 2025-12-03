@@ -128,15 +128,15 @@ func (v *Vectors) Truncate() error {
 	return nil
 }
 
-// Get returns a vector at the given index
-func (v *Vectors) Get(index int) ([]float32, error) {
-	if index < 0 || index >= v.persistedSize+len(v.appendBuffer) {
-		return nil, fmt.Errorf("index out of bounds: %d", index)
+// Get returns a vector at the given position
+func (v *Vectors) Get(position int32) ([]float32, error) {
+	if position < 0 || int(position) >= v.persistedSize+len(v.appendBuffer) {
+		return nil, fmt.Errorf("position out of bounds: %d", position)
 	}
 
-	// if index hit the append buffer return the value from append buffer
-	if index >= v.persistedSize {
-		appendIndex := index - v.persistedSize
+	// if position hit the append buffer return the value from append buffer
+	if int(position) >= v.persistedSize {
+		appendIndex := int(position) - v.persistedSize
 		return v.appendBuffer[appendIndex], nil
 	}
 
@@ -150,7 +150,7 @@ func (v *Vectors) Get(index int) ([]float32, error) {
 
 	// Calculate vector size and offset
 	vectorByteSize := v.vectorSize * conv.Float32Size
-	byteOffset := int64(index * vectorByteSize)
+	byteOffset := int64(position) * int64(vectorByteSize)
 
 	// Seek to the proper offset
 	_, err := v.readerFD.Seek(byteOffset, io.SeekStart)
@@ -174,45 +174,41 @@ func (v *Vectors) Get(index int) ([]float32, error) {
 
 }
 
-// Append appends a vector
-func (v *Vectors) Append(index int, vector []float32) error {
+// Append appends a vector and returns its position
+func (v *Vectors) Append(vector []float32) (int32, error) {
 	if len(vector) != v.vectorSize {
-		return fmt.Errorf("invalid vector length: expected %d, got %d", v.vectorSize, len(vector))
+		return -1, fmt.Errorf("invalid vector length: expected %d, got %d", v.vectorSize, len(vector))
 	}
 
-	// calculate expected index before appending
-	expectedIndex := v.persistedSize + len(v.appendBuffer)
+	// calculate position before appending
+	position := int32(v.persistedSize + len(v.appendBuffer))
 
-	// verify index integrity
-	if index != expectedIndex {
-		return fmt.Errorf("index integrity error: expected %d, got %d", expectedIndex, index)
-	}
 	// add to append buffer
 	v.appendBuffer = append(v.appendBuffer, vector)
 
 	// if append buffer is full flush to storage
 	if len(v.appendBuffer) >= v.maxAppendSize {
 		if err := v.Flush(); err != nil {
-			return err
+			return position, err
 		}
 	}
 
-	// return the index of appended vector and error if any
-	return nil
+	// return the position of appended vector
+	return position, nil
 }
 
-// Replace replaces a vector at the given index
-func (v *Vectors) Replace(index int, vector []float32) error {
+// Replace replaces a vector at the given position
+func (v *Vectors) Replace(position int32, vector []float32) error {
 	if len(vector) != v.vectorSize {
 		return fmt.Errorf("invalid vector length: expected %d, got %d", v.vectorSize, len(vector))
 	}
-	if index < 0 || index >= v.persistedSize+len(v.appendBuffer) {
-		return fmt.Errorf("index out of bounds: %d", index)
+	if position < 0 || int(position) >= v.persistedSize+len(v.appendBuffer) {
+		return fmt.Errorf("position out of bounds: %d", position)
 	}
-	// if index is less than persisted size, replace the vector in storage
-	if index < v.persistedSize {
+	// if position is less than persisted size, replace the vector in storage
+	if int(position) < v.persistedSize {
 		vectorByteSize := v.vectorSize * conv.Float32Size
-		byteOffset := int64(index * vectorByteSize)
+		byteOffset := int64(position) * int64(vectorByteSize)
 
 		writer, err := v.storage.Writer(byteOffset)
 		if err != nil {
@@ -228,15 +224,15 @@ func (v *Vectors) Replace(index int, vector []float32) error {
 		return nil
 	}
 
-	// if the index is inside append buffer, replace there and do immediate flush
-	appendIndex := index - v.persistedSize
+	// if the position is inside append buffer, replace there and do immediate flush
+	appendIndex := int(position) - v.persistedSize
 	copy(v.appendBuffer[appendIndex], vector)
 	return v.Flush()
 }
 
-// Delete vectors by indexes
-func (v *Vectors) Delete(indexes []int) error {
-	if len(indexes) == 0 {
+// Delete vectors by positions
+func (v *Vectors) Delete(positions []int32) error {
+	if len(positions) == 0 {
 		return nil
 	}
 
@@ -246,11 +242,12 @@ func (v *Vectors) Delete(indexes []int) error {
 		}
 	}
 
-	// Validate indexes and create a set for fast lookup
+	// Validate positions and create a set for fast lookup
 	deleteSet := make(map[int]bool)
-	for _, idx := range indexes {
-		if idx < 0 || idx >= v.persistedSize {
-			return fmt.Errorf("index out of bounds: %d", idx)
+	for _, pos := range positions {
+		idx := int(pos)
+		if pos < 0 || idx >= v.persistedSize {
+			return fmt.Errorf("position out of bounds: %d", pos)
 		}
 		deleteSet[idx] = true
 	}

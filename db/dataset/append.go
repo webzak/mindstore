@@ -27,6 +27,16 @@ func (ds *Dataset) Append(item Item) (*Item, error) {
 		return nil, fmt.Errorf("failed to append metadata: %w", err)
 	}
 
+	// Append vector if present and get its position
+	vectorPos := int32(-1)
+	if len(item.Vector) > 0 {
+		pos, err := ds.vectors.Append(item.Vector)
+		if err != nil {
+			return nil, fmt.Errorf("failed to append vector: %w", err)
+		}
+		vectorPos = pos
+	}
+
 	// Add index entry
 	row := index.Row{
 		Offset:             offset,
@@ -36,17 +46,11 @@ func (ds *Dataset) Append(item Item) (*Item, error) {
 		DataDescriptor:     item.DataDescriptor,
 		MetaDataDescriptor: item.MetaDescriptor,
 		Flags:              item.Flags,
+		Vector:             vectorPos,
 	}
 	id, err := ds.index.Append(row)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add index entry: %w", err)
-	}
-
-	if len(item.Vector) > 0 {
-		// Append vector
-		if err := ds.vectors.Append(id, item.Vector); err != nil {
-			return nil, fmt.Errorf("failed to append vector: %w", err)
-		}
 	}
 
 	// Add tags

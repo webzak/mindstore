@@ -37,7 +37,8 @@ type Row struct {
 	Flags uint8
 	// Reserved space to align the size
 	_ uint8
-	_ uint32
+	// Vector is the position of the vector in vector storage (-1 if no vector)
+	Vector int32
 }
 
 // Options are options for index
@@ -114,6 +115,7 @@ func marshalRow(row Row, buf []byte) {
 	buf[conv.Int64Size*4] = row.DataDescriptor
 	buf[conv.Int64Size*4+1] = row.MetaDataDescriptor
 	buf[conv.Int64Size*4+2] = row.Flags
+	conv.Int32ToBytes(row.Vector, buf[36:40])
 }
 
 // unmarshalRow deserializes a Row from the provided buffer
@@ -126,6 +128,7 @@ func unmarshalRow(buf []byte) Row {
 		DataDescriptor:     buf[conv.Int64Size*4],
 		MetaDataDescriptor: buf[conv.Int64Size*4+1],
 		Flags:              buf[conv.Int64Size*4+2],
+		Vector:             conv.BytesToInt32(buf[36:40]),
 	}
 }
 

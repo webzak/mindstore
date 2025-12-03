@@ -151,3 +151,45 @@ func (ds *Dataset) SetMetaData(id int, data []byte, descriptor uint8) error {
 
 	return nil
 }
+
+// SetVector updates or sets the vector for an existing record by index.
+// If the record already has a vector (Vector >= 0), it replaces it in-place.
+// If the record doesn't have a vector (Vector == -1), it appends a new one.
+func (ds *Dataset) SetVector(id int, vector []float32) error {
+	ds.mu.Lock()
+	defer ds.mu.Unlock()
+
+	if ds.closed {
+		return ErrDatasetClosed
+	}
+
+	// Get the current index record
+	row, err := ds.index.Get(id)
+	if err != nil {
+		return fmt.Errorf("failed to get index entry: %w", err)
+	}
+
+	var vectorPos int32
+	if row.Vector >= 0 {
+		// Replace existing vector in-place
+		if err := ds.vectors.Replace(row.Vector, vector); err != nil {
+			return fmt.Errorf("failed to replace vector: %w", err)
+		}
+		vectorPos = row.Vector
+	} else {
+		// Append new vector
+		pos, err := ds.vectors.Append(vector)
+		if err != nil {
+			return fmt.Errorf("failed to append vector: %w", err)
+		}
+		vectorPos = pos
+	}
+
+	// Update index with vector position
+	row.Vector = vectorPos
+	if err := ds.index.Replace(id, row); err != nil {
+		return fmt.Errorf("failed to update index: %w", err)
+	}
+
+	return nil
+}
