@@ -103,3 +103,35 @@ func (c *Collection) GetEmbeddersConfig() (map[string]any, error) {
 	}
 	return opts.Embedders, nil
 }
+
+// IsPersisted returns true when all data is saved to disk
+func (c *Collection) IsPersisted() bool {
+	if c.dataset != nil {
+		return c.dataset.IsPersisted()
+	}
+	return true
+}
+
+// Count returns the number of records in the collection
+func (c *Collection) Count() int {
+	if c.dataset != nil {
+		return c.dataset.Count()
+	}
+	return 0
+}
+
+// Flush persists all in-memory changes to storage
+func (c *Collection) Flush() error {
+	if c.dataset != nil {
+		return c.dataset.Flush()
+	}
+	return nil
+}
+
+// Truncate removes all data from the collection
+func (c *Collection) Truncate() error {
+	if c.dataset != nil {
+		return c.dataset.Truncate()
+	}
+	return nil
+}
