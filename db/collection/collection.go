@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 
 	"github.com/webzak/mindstore/db/dataset"
-	"github.com/webzak/mindstore/embeddings"
 	"github.com/webzak/mindstore/internal/storage"
 )
 
@@ -21,9 +20,8 @@ type Collection struct {
 	path string // Collection directory path
 	name string // Collection name
 
-	dataset   *dataset.Dataset
-	embedders map[string]embeddings.Embedder // Named embedder instances (set by user)
-	cfg       config                         // Internal collection configuration
+	dataset *dataset.Dataset
+	cfg     config // Internal collection configuration
 }
 
 // CreateCollection creates a new collection with the given options
@@ -50,11 +48,10 @@ func CreateCollection(path, name string, opts Options) (*Collection, error) {
 	}
 
 	coll := &Collection{
-		path:      path,
-		name:      name,
-		dataset:   ds,
-		embedders: make(map[string]embeddings.Embedder),
-		cfg:       cfg,
+		path:    path,
+		name:    name,
+		dataset: ds,
+		cfg:     cfg,
 	}
 
 	return coll, nil
@@ -77,11 +74,10 @@ func OpenCollection(path, name string) (*Collection, error) {
 	}
 
 	coll := &Collection{
-		path:      path,
-		name:      name,
-		dataset:   ds,
-		embedders: make(map[string]embeddings.Embedder),
-		cfg:       cfg,
+		path:    path,
+		name:    name,
+		dataset: ds,
+		cfg:     cfg,
 	}
 
 	return coll, nil

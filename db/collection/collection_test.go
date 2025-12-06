@@ -45,9 +45,6 @@ func TestCreateCollection(t *testing.T) {
 	if coll.dataset == nil {
 		t.Error("expected dataset to be initialized")
 	}
-	if coll.embedders == nil {
-		t.Error("expected embedders map to be initialized")
-	}
 }
 
 func TestOpenCollection(t *testing.T) {
