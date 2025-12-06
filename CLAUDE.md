@@ -52,15 +52,19 @@ go vet ./...
 
 ## Architecture
 
-### Three-Layer Storage Architecture
+### Four-Layer Storage Architecture
 
-1. **Dataset Layer** (`db/dataset/`) - Public API
+1. **Collection layer**
+   Based on Dataset. Not implemented yet.
+
+
+2. **Dataset Layer** (`db/dataset/`) - Public API
    - Provides high-level operations: Append, Read, Delete, Optimize
    - Coordinates all internal components
    - Manages process-level locking via `.lock` file
    - Thread-safe with mutex protection
 
-2. **Internal Components** (`internal/`)
+3. **Internal Components** (`internal/`)
    - `data` - Variable-length binary storage with buffering
    - `index` - Fixed-size record index (40 bytes per record)
    - `vectors` - Fixed-size float32 vector storage
@@ -68,7 +72,7 @@ go vet ./...
    - `groups` - Group membership with ordering
    - `storage` - Low-level file operations (lazy creation)
 
-3. **Storage Layer** (`internal/storage/`)
+4. **Storage Layer** (`internal/storage/`)
    - Handles raw file I/O with lazy file creation
    - Returns readers/writers/appenders positioned at offsets
 
@@ -226,12 +230,3 @@ Adjust buffer sizes in `dataset.Options`:
 
 Set to 0 for immediate writes (testing/debugging).
 
-## Current Limitations & Known Issues
-
-### Roadmap Items
-- No hard delete (space reclamation only via Optimize)
-- No batch operations
-- No query/filter API beyond tags
-- No vector similarity search
-- No export/import or backup tools
-- Groups lack full CRUD API (no remove from group, no delete group)
