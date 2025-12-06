@@ -273,7 +273,7 @@ func TestReadWithNoVector(t *testing.T) {
 	// Read with vector flag - should not error but vector should be nil/empty
 	retrieved, err := ds.Read(res.ID, ReadVector)
 	assert.NilError(t, err)
-	if retrieved.Vector != nil && len(retrieved.Vector) > 0 {
+	if len(retrieved.Vector) > 0 {
 		t.Errorf("expected nil or empty vector, got %v", retrieved.Vector)
 	}
 }

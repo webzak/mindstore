@@ -481,3 +481,151 @@ func TestRemoveMemberFromGroup(t *testing.T) {
 	// Order should be: 0(place 0), 2(place 2), 1(place 3)
 	assert.DeepEqual(t, []int{0, 2, 1}, members)
 }
+
+func TestRemove(t *testing.T) {
+	dir := t.TempDir()
+
+	g, err := New(filepath.Join(dir, "groups.bin"))
+	assert.NilError(t, err)
+
+	// Create group with multiple members
+	groupID, err := g.CreateGroup(0)
+	assert.NilError(t, err)
+
+	err = g.Assign(groupID, 1, 1)
+	assert.NilError(t, err)
+
+	err = g.Assign(groupID, 2, 2)
+	assert.NilError(t, err)
+
+	// Verify initial state
+	count, err := g.Count()
+	assert.NilError(t, err)
+	assert.Equal(t, 3, count)
+
+	members, err := g.GetMembers(groupID)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, []int{0, 1, 2}, members)
+
+	// Remove index 1
+	err = g.Remove(1)
+	assert.NilError(t, err)
+
+	// Verify removed from group
+	members, err = g.GetMembers(groupID)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, []int{0, 2}, members)
+
+	// Verify count decreased
+	count, err = g.Count()
+	assert.NilError(t, err)
+	assert.Equal(t, 2, count)
+
+	// Verify GetGroup returns -1 for removed index
+	foundGroup, err := g.GetGroup(1)
+	assert.NilError(t, err)
+	assert.Equal(t, -1, foundGroup)
+
+	// Verify persistence flag
+	assert.Equal(t, false, g.IsPersisted())
+}
+
+func TestRemoveIdempotent(t *testing.T) {
+	dir := t.TempDir()
+
+	g, err := New(filepath.Join(dir, "groups.bin"))
+	assert.NilError(t, err)
+
+	// Create group
+	_, err = g.CreateGroup(0)
+	assert.NilError(t, err)
+
+	// Remove index that's not in any group (should succeed)
+	err = g.Remove(999)
+	assert.NilError(t, err)
+
+	// Call again (idempotent)
+	err = g.Remove(999)
+	assert.NilError(t, err)
+
+	// Verify no changes to count
+	count, err := g.Count()
+	assert.NilError(t, err)
+	assert.Equal(t, 1, count)
+}
+
+func TestRemoveCleansEmptyGroup(t *testing.T) {
+	dir := t.TempDir()
+
+	g, err := New(filepath.Join(dir, "groups.bin"))
+	assert.NilError(t, err)
+
+	// Create group with single member
+	groupID, err := g.CreateGroup(0)
+	assert.NilError(t, err)
+
+	// Verify group exists
+	members, err := g.GetMembers(groupID)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, []int{0}, members)
+
+	// Remove the only member
+	err = g.Remove(0)
+	assert.NilError(t, err)
+
+	// Verify group is cleaned up (GetMembers should return nil)
+	members, err = g.GetMembers(groupID)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, []int(nil), members)
+
+	// Verify count is zero
+	count, err := g.Count()
+	assert.NilError(t, err)
+	assert.Equal(t, 0, count)
+}
+
+func TestRemovePersistence(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "groups.bin")
+
+	// Create and populate groups
+	g, err := New(path)
+	assert.NilError(t, err)
+
+	groupID, err := g.CreateGroup(0)
+	assert.NilError(t, err)
+
+	err = g.Assign(groupID, 1, 1)
+	assert.NilError(t, err)
+
+	err = g.Assign(groupID, 2, 2)
+	assert.NilError(t, err)
+
+	// Remove one member
+	err = g.Remove(1)
+	assert.NilError(t, err)
+
+	// Flush and close
+	err = g.Flush()
+	assert.NilError(t, err)
+
+	err = g.Close()
+	assert.NilError(t, err)
+
+	// Reload and verify removal persisted
+	g2, err := New(path)
+	assert.NilError(t, err)
+
+	members, err := g2.GetMembers(groupID)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, []int{0, 2}, members)
+
+	count, err := g2.Count()
+	assert.NilError(t, err)
+	assert.Equal(t, 2, count)
+
+	// Verify removed index not in any group
+	foundGroup, err := g2.GetGroup(1)
+	assert.NilError(t, err)
+	assert.Equal(t, -1, foundGroup)
+}

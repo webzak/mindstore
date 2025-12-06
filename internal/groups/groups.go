@@ -200,6 +200,38 @@ func (g *Groups) removeMemberFromGroup(groupID int, indexID int) {
 	}
 }
 
+// Remove removes an index from its group (if assigned to one).
+// If the index is not assigned to any group, this is a no-op (idempotent).
+// Returns error only on I/O issues during lazy loading.
+func (g *Groups) Remove(indexID int) error {
+	if !g.isLoaded {
+		if err := g.load(); err != nil {
+			return err
+		}
+	}
+
+	// Check if index is assigned to a group
+	groupID, ok := g.indexToGroup[indexID]
+	if !ok {
+		// Not assigned to any group - this is a no-op
+		return nil
+	}
+
+	// Remove from indexToGroup map
+	delete(g.indexToGroup, indexID)
+
+	// Remove from group's member list
+	g.removeMemberFromGroup(groupID, indexID)
+
+	// Clean up empty group
+	if len(g.groups[groupID]) == 0 {
+		delete(g.groups, groupID)
+	}
+
+	g.isPersisted = false
+	return nil
+}
+
 // GetGroup returns the group ID for a given index ID.
 // Returns -1 if the index ID is not assigned to any group.
 func (g *Groups) GetGroup(indexID int) (int, error) {
