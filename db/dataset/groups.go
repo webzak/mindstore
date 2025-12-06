@@ -77,3 +77,45 @@ func (ds *Dataset) UnsetGroup(id int) error {
 
 	return nil
 }
+
+// GetGroupItems retrieves all items in a group, ordered by place (ascending).
+// Returns an empty slice if the group has no members or doesn't exist.
+//
+// Parameters:
+//   - groupID: The group ID to retrieve items for
+//   - opts: ReadOptions bitmask to control which fields to load (ReadData, ReadMeta, ReadVector, ReadTags, ReadGroup)
+//
+// Returns:
+//   - []Item: Slice of items ordered by their place in the group (0, 1, 2, ...)
+//   - error: On dataset closed or I/O errors
+func (ds *Dataset) GetGroupItems(groupID int, opts ReadOptions) ([]Item, error) {
+	ds.mu.Lock()
+	defer ds.mu.Unlock()
+
+	if ds.closed {
+		return nil, ErrDatasetClosed
+	}
+
+	// Get ordered member IDs from groups
+	ids, err := ds.groups.GetMembers(groupID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get group members: %w", err)
+	}
+
+	// Return empty slice if no members (consistent with GetIDsByTag pattern)
+	if len(ids) == 0 {
+		return []Item{}, nil
+	}
+
+	// Read each item with requested options
+	items := make([]Item, 0, len(ids))
+	for _, id := range ids {
+		item, err := ds.readUnlocked(id, opts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read item %d: %w", id, err)
+		}
+		items = append(items, *item)
+	}
+
+	return items, nil
+}

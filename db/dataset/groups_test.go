@@ -460,3 +460,266 @@ func TestUnsetGroupClosed(t *testing.T) {
 	err = ds.UnsetGroup(item.ID)
 	assert.ErrorIs(t, ErrDatasetClosed, err)
 }
+
+func TestGetGroupItemsBasic(t *testing.T) {
+	tmpDir := t.TempDir()
+	ds, err := Open(tmpDir, "test_get_group_items_basic", DefaultOptions())
+	assert.NilError(t, err)
+	defer ds.Close()
+
+	// Create a group with 3 members at places 0, 2, 1 (intentionally out of order)
+	item1, err := ds.Append(Item{
+		Data:           []byte("item at place 0"),
+		DataDescriptor: 1,
+		GroupID:        -1, // Create new group
+	})
+	assert.NilError(t, err)
+	groupID := item1.GroupID
+
+	item2, err := ds.Append(Item{
+		Data:           []byte("item at place 2"),
+		DataDescriptor: 2,
+		GroupID:        groupID,
+		GroupPlace:     2,
+	})
+	assert.NilError(t, err)
+
+	item3, err := ds.Append(Item{
+		Data:           []byte("item at place 1"),
+		DataDescriptor: 3,
+		GroupID:        groupID,
+		GroupPlace:     1,
+	})
+	assert.NilError(t, err)
+
+	// Retrieve group items with ReadData option
+	items, err := ds.GetGroupItems(groupID, ReadData)
+	assert.NilError(t, err)
+
+	// Should have 3 items
+	assert.Equal(t, 3, len(items))
+
+	// Verify they are ordered by place (0, 1, 2)
+	assert.Equal(t, item1.ID, items[0].ID)
+	assert.DeepEqual(t, []byte("item at place 0"), items[0].Data)
+	assert.Equal(t, uint8(1), items[0].DataDescriptor)
+
+	assert.Equal(t, item3.ID, items[1].ID)
+	assert.DeepEqual(t, []byte("item at place 1"), items[1].Data)
+	assert.Equal(t, uint8(3), items[1].DataDescriptor)
+
+	assert.Equal(t, item2.ID, items[2].ID)
+	assert.DeepEqual(t, []byte("item at place 2"), items[2].Data)
+	assert.Equal(t, uint8(2), items[2].DataDescriptor)
+}
+
+func TestGetGroupItemsWithReadOptions(t *testing.T) {
+	tmpDir := t.TempDir()
+	ds, err := Open(tmpDir, "test_get_group_items_options", DefaultOptions())
+	assert.NilError(t, err)
+	defer ds.Close()
+
+	// Create test vectors (768 elements as per DefaultVectorSize)
+	vec1 := make([]float32, 768)
+	vec2 := make([]float32, 768)
+	for i := 0; i < 768; i++ {
+		vec1[i] = float32(i)
+		vec2[i] = float32(i * 2)
+	}
+
+	// Create a group with items having data, meta, vectors, tags
+	item1, err := ds.Append(Item{
+		Data:           []byte("data1"),
+		DataDescriptor: 1,
+		Meta:           []byte("meta1"),
+		MetaDescriptor: 10,
+		Vector:         vec1,
+		Tags:           []string{"tag1", "tag2"},
+		GroupID:        -1,
+	})
+	assert.NilError(t, err)
+	groupID := item1.GroupID
+
+	_, err = ds.Append(Item{
+		Data:           []byte("data2"),
+		DataDescriptor: 2,
+		Meta:           []byte("meta2"),
+		MetaDescriptor: 20,
+		Vector:         vec2,
+		Tags:           []string{"tag3"},
+		GroupID:        groupID,
+		GroupPlace:     1,
+	})
+	assert.NilError(t, err)
+
+	// Test with ReadData | ReadVector
+	items, err := ds.GetGroupItems(groupID, ReadData|ReadVector)
+	assert.NilError(t, err)
+	assert.Equal(t, 2, len(items))
+
+	// Verify data and vector are loaded
+	assert.DeepEqual(t, []byte("data1"), items[0].Data)
+	assert.DeepEqual(t, vec1, items[0].Vector)
+	// Meta should not be loaded
+	assert.Equal(t, 0, len(items[0].Meta))
+	// Tags should not be loaded
+	assert.Equal(t, 0, len(items[0].Tags))
+
+	// Test with ReadTags | ReadGroup
+	items, err = ds.GetGroupItems(groupID, ReadTags|ReadGroup)
+	assert.NilError(t, err)
+	assert.Equal(t, 2, len(items))
+
+	// Verify tags and group are loaded
+	assert.DeepEqual(t, []string{"tag1", "tag2"}, items[0].Tags)
+	assert.Equal(t, groupID, items[0].GroupID)
+	assert.Equal(t, 0, items[0].GroupPlace)
+	// Data should not be loaded
+	assert.Equal(t, 0, len(items[0].Data))
+
+	// Test with no options (only index fields)
+	items, err = ds.GetGroupItems(groupID, 0)
+	assert.NilError(t, err)
+	assert.Equal(t, 2, len(items))
+
+	// Only index fields should be populated
+	assert.Equal(t, uint8(1), items[0].DataDescriptor)
+	assert.Equal(t, uint8(10), items[0].MetaDescriptor)
+	assert.Equal(t, 0, len(items[0].Data))
+	assert.Equal(t, 0, len(items[0].Meta))
+	assert.Equal(t, 0, len(items[0].Vector))
+	assert.Equal(t, 0, len(items[0].Tags))
+}
+
+func TestGetGroupItemsEmptyGroup(t *testing.T) {
+	tmpDir := t.TempDir()
+	ds, err := Open(tmpDir, "test_get_group_items_empty", DefaultOptions())
+	assert.NilError(t, err)
+	defer ds.Close()
+
+	// Call with groupID that doesn't exist
+	items, err := ds.GetGroupItems(999, ReadData)
+	assert.NilError(t, err)
+
+	// Should return empty slice (not nil)
+	assert.Equal(t, 0, len(items))
+	if items == nil {
+		t.Error("expected empty slice, got nil")
+	}
+}
+
+func TestGetGroupItemsAfterFlush(t *testing.T) {
+	tmpDir := t.TempDir()
+	ds, err := Open(tmpDir, "test_get_group_items_flush", DefaultOptions())
+	assert.NilError(t, err)
+	defer ds.Close()
+
+	// Create group with members
+	item1, err := ds.Append(Item{
+		Data:           []byte("member1"),
+		DataDescriptor: 1,
+		GroupID:        -1,
+	})
+	assert.NilError(t, err)
+	groupID := item1.GroupID
+
+	_, err = ds.Append(Item{
+		Data:           []byte("member2"),
+		DataDescriptor: 2,
+		GroupID:        groupID,
+		GroupPlace:     1,
+	})
+	assert.NilError(t, err)
+
+	// Flush dataset
+	err = ds.Flush()
+	assert.NilError(t, err)
+
+	// Retrieve items, verify still correct
+	items, err := ds.GetGroupItems(groupID, ReadData)
+	assert.NilError(t, err)
+	assert.Equal(t, 2, len(items))
+	assert.DeepEqual(t, []byte("member1"), items[0].Data)
+	assert.DeepEqual(t, []byte("member2"), items[1].Data)
+}
+
+func TestGetGroupItemsClosed(t *testing.T) {
+	tmpDir := t.TempDir()
+	ds, err := Open(tmpDir, "test_get_group_items_closed", DefaultOptions())
+	assert.NilError(t, err)
+
+	// Create group
+	item, err := ds.Append(Item{
+		Data:           []byte("test"),
+		DataDescriptor: 1,
+		GroupID:        -1,
+	})
+	assert.NilError(t, err)
+	groupID := item.GroupID
+
+	// Close dataset
+	ds.Close()
+
+	// Verify GetGroupItems returns ErrDatasetClosed
+	_, err = ds.GetGroupItems(groupID, ReadData)
+	assert.ErrorIs(t, ErrDatasetClosed, err)
+}
+
+func TestGetGroupItemsAfterOptimize(t *testing.T) {
+	tmpDir := t.TempDir()
+	ds, err := Open(tmpDir, "test_get_group_items_optimize", DefaultOptions())
+	assert.NilError(t, err)
+	defer ds.Close()
+
+	// Create group with 3 members
+	item1, err := ds.Append(Item{
+		Data:           []byte("member1"),
+		DataDescriptor: 1,
+		GroupID:        -1,
+	})
+	assert.NilError(t, err)
+	groupID := item1.GroupID
+
+	_, err = ds.Append(Item{
+		Data:           []byte("member2"),
+		DataDescriptor: 2,
+		GroupID:        groupID,
+		GroupPlace:     1,
+	})
+	assert.NilError(t, err)
+
+	_, err = ds.Append(Item{
+		Data:           []byte("member3"),
+		DataDescriptor: 3,
+		GroupID:        groupID,
+		GroupPlace:     2,
+	})
+	assert.NilError(t, err)
+
+	// Delete middle member (mark for removal)
+	err = ds.Delete(item1.ID)
+	assert.NilError(t, err)
+
+	// Optimize (IDs will remap)
+	err = ds.Optimize()
+	assert.NilError(t, err)
+
+	// Retrieve group items
+	items, err := ds.GetGroupItems(groupID, ReadData)
+	assert.NilError(t, err)
+
+	// Verify correct 2 items returned (member2 and member3)
+	assert.Equal(t, 2, len(items))
+	assert.DeepEqual(t, []byte("member2"), items[0].Data)
+	assert.DeepEqual(t, []byte("member3"), items[1].Data)
+
+	// Verify the IDs have been remapped (should be 0 and 1 after optimization)
+	// Note: We can't predict exact IDs, but we can verify they're valid
+	assert.Equal(t, true, items[0].ID >= 0 && items[0].ID < ds.Count())
+	assert.Equal(t, true, items[1].ID >= 0 && items[1].ID < ds.Count())
+
+	// Verify they're still in the correct order by place
+	readItem3, err := ds.Read(items[1].ID, ReadGroup)
+	assert.NilError(t, err)
+	assert.Equal(t, groupID, readItem3.GroupID)
+}

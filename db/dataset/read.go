@@ -40,6 +40,12 @@ func (c *Dataset) Read(id int, opts ReadOptions) (*Item, error) {
 		return nil, ErrDatasetClosed
 	}
 
+	return c.readUnlocked(id, opts)
+}
+
+// readUnlocked is an internal read function that doesn't acquire the mutex.
+// It's used by methods that already hold the lock (like GetGroupItems).
+func (c *Dataset) readUnlocked(id int, opts ReadOptions) (*Item, error) {
 	// Get index entry
 	row, err := c.index.Get(id)
 	if err != nil {
