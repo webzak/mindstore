@@ -2,11 +2,11 @@ package collection
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/webzak/mindstore/db/dataset"
 	"github.com/webzak/mindstore/embeddings"
+	"github.com/webzak/mindstore/internal/storage"
 )
 
 type DataType uint8
@@ -26,18 +26,10 @@ type Collection struct {
 	cfg       config                         // Internal collection configuration
 }
 
-// ensureDir creates a directory if it doesn't exist
-func ensureDir(dir string) error {
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create directory: %w", err)
-	}
-	return nil
-}
-
 // CreateCollection creates a new collection with the given options
 func CreateCollection(path, name string, opts Options) (*Collection, error) {
 	dir := filepath.Join(path, name)
-	if err := ensureDir(dir); err != nil {
+	if err := storage.EnsureDir(dir); err != nil {
 		return nil, err
 	}
 

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/webzak/mindstore/internal/storage"
 	"github.com/webzak/mindstore/internal/testutil/assert"
 )
 
@@ -263,9 +264,9 @@ func TestEnsureDir(t *testing.T) {
 				assert.NilError(t, tt.setup(tt.path))
 			}
 
-			err := ensureDir(tt.path)
+			err := storage.EnsureDir(tt.path)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ensureDir() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("storage.EnsureDir() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
 			if !tt.wantErr {

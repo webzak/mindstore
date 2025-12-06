@@ -16,6 +16,7 @@ var (
 	ErrFileCreate        = errors.New("error creating file")
 	ErrFileInvalidOffset = errors.New("error invalid file offset")
 	ErrFileSeek          = errors.New("error file seek")
+	ErrPathNotDir        = errors.New("path exists but is not a directory")
 )
 
 // File represents the file storage
@@ -139,4 +140,28 @@ func (f *File) Truncate() error {
 // Path returns file path
 func (f *File) Path() string {
 	return f.path
+}
+
+// EnsureDir ensures that the given path exists and is a directory
+func EnsureDir(path string) error {
+	fileInfo, err := os.Stat(path)
+	// Handle stat errors other than "not exist"
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to stat path: %w", err)
+	}
+
+	// Path doesn't exist, create it
+	if os.IsNotExist(err) {
+		if err = os.MkdirAll(path, 0755); err != nil {
+			return fmt.Errorf("failed to create directory: %w", err)
+		}
+		return nil
+	}
+
+	// Path exists, verify it's a directory
+	if !fileInfo.IsDir() {
+		return fmt.Errorf("%w: %s", ErrPathNotDir, path)
+	}
+
+	return nil
 }

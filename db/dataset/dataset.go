@@ -11,6 +11,7 @@ import (
 	"github.com/webzak/mindstore/internal/data"
 	"github.com/webzak/mindstore/internal/groups"
 	"github.com/webzak/mindstore/internal/index"
+	"github.com/webzak/mindstore/internal/storage"
 	"github.com/webzak/mindstore/internal/tags"
 	"github.com/webzak/mindstore/internal/vectors"
 )
@@ -71,7 +72,7 @@ type Item struct {
 func Open(path, name string, opt Options) (*Dataset, error) {
 
 	dir := filepath.Join(path, name)
-	if err := ensureDir(dir); err != nil {
+	if err := storage.EnsureDir(dir); err != nil {
 		return nil, err
 	}
 
@@ -268,28 +269,4 @@ func (c *Dataset) Count() int {
 	defer c.mu.Unlock()
 
 	return c.index.Count()
-}
-
-// ensureDir ensures that the given path exists and is a directory
-func ensureDir(path string) error {
-	fileInfo, err := os.Stat(path)
-	// Handle stat errors other than "not exist"
-	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to stat path: %w", err)
-	}
-
-	// Path doesn't exist, create it
-	if os.IsNotExist(err) {
-		if err = os.MkdirAll(path, 0755); err != nil {
-			return fmt.Errorf("failed to create directory: %w", err)
-		}
-		return nil
-	}
-
-	// Path exists, verify it's a directory
-	if !fileInfo.IsDir() {
-		return fmt.Errorf("path exists but is not a directory: %s", path)
-	}
-
-	return nil
 }
