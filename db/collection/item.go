@@ -149,7 +149,7 @@ func (i *Item) Apply() (*dataset.Item, error) {
 // Returns empty map if no metadata is present
 // Returns error if metadata cannot be unmarshaled
 func GetMeta(item *dataset.Item) (map[string]any, error) {
-	if item.Meta == nil || len(item.Meta) == 0 {
+	if len(item.Meta) == 0 {
 		return make(map[string]any), nil
 	}
 

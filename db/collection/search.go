@@ -73,10 +73,11 @@ func (c *Collection) VectorSearch(vector []float32, opt VectorSearchOptions) ([]
 		resultCount = opt.Limit
 	}
 
-	// Load full items for top results
+	// Load full items for top results (excluding vectors - we already used them for search)
 	results := make([]*VectorSearchResult, resultCount)
+	readOpts := dataset.ReadData | dataset.ReadMeta | dataset.ReadTags | dataset.ReadGroup
 	for i := 0; i < resultCount; i++ {
-		item, err := c.dataset.Read(distances[i].id, dataset.AllReadOptions())
+		item, err := c.dataset.Read(distances[i].id, readOpts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read item %d: %w", distances[i].id, err)
 		}
