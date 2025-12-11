@@ -55,10 +55,10 @@ func Run() error {
 		return deleteCmd()
 	case "feed":
 		return feed()
-	// case "create-embeddings":
-	// 	return createEmbeddings()
-	// case "vector-search":
-	// 	return vectorSearch()
+	case "create-embeddings":
+		return createEmbeddings()
+	case "vector-search":
+		return vectorSearch()
 	case "help", "-h", "--help":
 		fmt.Print(usage)
 		return nil

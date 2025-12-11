@@ -1,6 +1,7 @@
 package collection
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -166,8 +167,16 @@ func printInfo(name string, embeddersConfig map[string]any, stats *collection.St
 	if len(embeddersConfig) == 0 {
 		fmt.Println("    (none)")
 	} else {
-		for key, value := range embeddersConfig {
-			fmt.Printf("    %s: %v\n", key, value)
+		// Marshal to prettified JSON
+		jsonBytes, err := json.MarshalIndent(embeddersConfig, "    ", "  ")
+		if err != nil {
+			// Fallback to simple formatting if JSON marshaling fails
+			for key, value := range embeddersConfig {
+				fmt.Printf("    %s: %v\n", key, value)
+			}
+		} else {
+			// Print with proper indentation
+			fmt.Printf("    %s\n", string(jsonBytes))
 		}
 	}
 	fmt.Println()

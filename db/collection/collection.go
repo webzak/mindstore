@@ -253,3 +253,12 @@ func (c *Collection) getMetadataKeyCounts() (map[string]int, error) {
 
 	return counts, nil
 }
+
+// SetVector updates or sets the vector for an existing record by index
+// Delegates to the underlying dataset's SetVector method
+func (c *Collection) SetVector(id int, vector []float32) error {
+	if c.dataset == nil {
+		return fmt.Errorf("collection dataset is not initialized")
+	}
+	return c.dataset.SetVector(id, vector)
+}
