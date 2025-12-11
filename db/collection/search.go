@@ -10,8 +10,8 @@ import (
 
 // VectorSearchResult represents a single search result with similarity score
 type VectorSearchResult struct {
-	Distance float32       // Cosine similarity score (-1 to 1, higher is more similar)
-	Item     *dataset.Item // Complete dataset item
+	Distance float32 // Cosine similarity score (-1 to 1, higher is more similar)
+	Item     *Item   // Complete collection item
 }
 
 // VectorSearchOptions configures vector search behavior
@@ -77,9 +77,15 @@ func (c *Collection) VectorSearch(vector []float32, opt VectorSearchOptions) ([]
 	results := make([]*VectorSearchResult, resultCount)
 	readOpts := dataset.ReadData | dataset.ReadMeta | dataset.ReadTags | dataset.ReadGroup
 	for i := 0; i < resultCount; i++ {
-		item, err := c.dataset.Read(distances[i].id, readOpts)
+		dsItem, err := c.dataset.Read(distances[i].id, readOpts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read item %d: %w", distances[i].id, err)
+		}
+
+		// Convert dataset.Item to collection.Item
+		item, err := c.datasetItemToCollectionItem(dsItem)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert item %d: %w", distances[i].id, err)
 		}
 
 		results[i] = &VectorSearchResult{

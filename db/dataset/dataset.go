@@ -1,6 +1,7 @@
 package dataset
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -66,6 +67,38 @@ type Item struct {
 	GroupID int
 	// GroupPlace is the position within the group
 	GroupPlace int
+}
+
+// GetMeta retrieves and deserializes JSON metadata from an Item
+// Returns empty map if no metadata is present
+// Returns error if metadata cannot be unmarshaled
+func (item *Item) GetMeta() (map[string]any, error) {
+	if len(item.Meta) == 0 {
+		return make(map[string]any), nil
+	}
+
+	var meta map[string]any
+	if err := json.Unmarshal(item.Meta, &meta); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal metadata: %w", err)
+	}
+
+	return meta, nil
+}
+
+// GetMetaValue retrieves a specific metadata value by key
+// Returns error if key not found or metadata cannot be unmarshaled
+func (item *Item) GetMetaValue(key string) (any, error) {
+	meta, err := item.GetMeta()
+	if err != nil {
+		return nil, err
+	}
+
+	value, exists := meta[key]
+	if !exists {
+		return nil, fmt.Errorf("metadata key %q not found", key)
+	}
+
+	return value, nil
 }
 
 // Open opens dataset or creates empty one
@@ -269,4 +302,69 @@ func (c *Dataset) Count() int {
 	defer c.mu.Unlock()
 
 	return c.index.Count()
+}
+
+// Stats contains dataset statistics
+type Stats struct {
+	TotalRecords        int
+	RecordsWithTags     int
+	RecordsWithMetadata int
+	RecordsWithGroups   int
+	RecordsWithVectors  int
+	TagCounts           map[string]int // tag -> count of records
+	TotalGroups         int
+}
+
+// GetStats returns statistics about the dataset
+func (c *Dataset) GetStats() (*Stats, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	stats := &Stats{
+		TotalRecords: c.index.Count(),
+	}
+
+	// Count records with tags
+	tagCount, err := c.tags.Count()
+	if err != nil {
+		return nil, fmt.Errorf("failed to count tags: %w", err)
+	}
+	stats.RecordsWithTags = tagCount
+
+	// Get tag counts (tag -> number of records using that tag)
+	tagCounts, err := c.tags.GetTagCounts()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tag counts: %w", err)
+	}
+	stats.TagCounts = tagCounts
+
+	// Count records with groups
+	groupCount, err := c.groups.Count()
+	if err != nil {
+		return nil, fmt.Errorf("failed to count groups: %w", err)
+	}
+	stats.RecordsWithGroups = groupCount
+
+	// Get total number of groups
+	totalGroups, err := c.groups.GetGroupCount()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get group count: %w", err)
+	}
+	stats.TotalGroups = totalGroups
+
+	// Count records with metadata and vectors (requires index iteration)
+	metaCount := 0
+	vectorCount := 0
+	for _, row := range c.index.Iterator() {
+		if row.MetaOffset != -1 {
+			metaCount++
+		}
+		if row.Vector != -1 {
+			vectorCount++
+		}
+	}
+	stats.RecordsWithMetadata = metaCount
+	stats.RecordsWithVectors = vectorCount
+
+	return stats, nil
 }

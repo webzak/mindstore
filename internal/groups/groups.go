@@ -297,6 +297,16 @@ func (g *Groups) Count() (int, error) {
 	return len(g.indexToGroup), nil
 }
 
+// GetGroupCount returns the total number of groups
+func (g *Groups) GetGroupCount() (int, error) {
+	if !g.isLoaded {
+		if err := g.load(); err != nil {
+			return 0, err
+		}
+	}
+	return len(g.groups), nil
+}
+
 // IsPersisted returns true if all changes have been flushed to storage
 func (g *Groups) IsPersisted() bool {
 	return g.isPersisted

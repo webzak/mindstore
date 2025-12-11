@@ -145,34 +145,66 @@ func (i *Item) Apply() (*dataset.Item, error) {
 	return result, nil
 }
 
-// GetMeta retrieves and deserializes metadata from an item
-// Returns empty map if no metadata is present
-// Returns error if metadata cannot be unmarshaled
-func GetMeta(item *dataset.Item) (map[string]any, error) {
-	if len(item.Meta) == 0 {
-		return make(map[string]any), nil
-	}
+// Accessor methods for Item fields
 
-	var meta map[string]any
-	if err := json.Unmarshal(item.Meta, &meta); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal metadata: %w", err)
+// TextData returns the data as a string if the item has Text descriptor
+// Returns empty string if the item is not a Text type
+func (i *Item) TextData() string {
+	if i.dataDescriptor != Text {
+		return ""
 	}
-
-	return meta, nil
+	return string(i.data)
 }
 
-// GetMetaValue retrieves a specific metadata value by key
-// Returns error if key not found or metadata cannot be unmarshaled
-func GetMetaValue(item *dataset.Item, key string) (any, error) {
-	meta, err := GetMeta(item)
-	if err != nil {
-		return nil, err
-	}
+// Data returns the raw data bytes regardless of descriptor type
+func (i *Item) Data() []byte {
+	return i.data
+}
 
-	value, exists := meta[key]
-	if !exists {
-		return nil, fmt.Errorf("metadata key %q not found", key)
-	}
+// Meta returns the metadata map
+// Returns nil if no metadata is present
+func (i *Item) Meta() map[string]any {
+	return i.meta
+}
 
-	return value, nil
+// MetaValue retrieves a specific metadata value by key
+// Returns the value and true if found, nil and false if not found
+func (i *Item) MetaValue(key string) (any, bool) {
+	if i.meta == nil {
+		return nil, false
+	}
+	value, exists := i.meta[key]
+	return value, exists
+}
+
+// Tags returns the tags associated with this item
+func (i *Item) Tags() []string {
+	return i.tags
+}
+
+// Group returns the group ID this item belongs to
+// Returns 0 if item is not part of any group
+func (i *Item) Group() int {
+	return i.groupID
+}
+
+// GroupPlace returns the position of this item within its group
+func (i *Item) GroupPlace() int {
+	return i.groupPlace
+}
+
+// Flags returns the flags field
+func (i *Item) Flags() uint8 {
+	return i.flags
+}
+
+// Vector returns the vector data
+// Returns nil if vector was not loaded (use ReturnVector option in Read)
+func (i *Item) Vector() []float32 {
+	return i.vector
+}
+
+// DataDescriptor returns the data type descriptor
+func (i *Item) DataDescriptor() DataType {
+	return i.dataDescriptor
 }

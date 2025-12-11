@@ -301,7 +301,7 @@ func TestApplyMetadataJSON(t *testing.T) {
 	}
 
 	// Deserialize and check metadata
-	meta, err := GetMeta(result)
+	meta, err := result.GetMeta()
 	if err != nil {
 		t.Fatalf("GetMeta failed: %v", err)
 	}
@@ -389,7 +389,7 @@ func TestGetMeta(t *testing.T) {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
-	meta, err := GetMeta(result)
+	meta, err := result.GetMeta()
 	if err != nil {
 		t.Fatalf("GetMeta failed: %v", err)
 	}
@@ -416,7 +416,7 @@ func TestGetMetaEmpty(t *testing.T) {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
-	meta, err := GetMeta(result)
+	meta, err := result.GetMeta()
 	if err != nil {
 		t.Fatalf("GetMeta failed: %v", err)
 	}
@@ -442,7 +442,7 @@ func TestGetMetaValue(t *testing.T) {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
-	value, err := GetMetaValue(result, "author")
+	value, err := result.GetMetaValue("author")
 	if err != nil {
 		t.Fatalf("GetMetaValue failed: %v", err)
 	}
@@ -468,7 +468,7 @@ func TestGetMetaValueNotFound(t *testing.T) {
 		t.Fatalf("Apply failed: %v", err)
 	}
 
-	_, err = GetMetaValue(result, "nonexistent")
+	_, err = result.GetMetaValue("nonexistent")
 	if err == nil {
 		t.Error("expected error for nonexistent key")
 	}
@@ -512,12 +512,12 @@ func TestComplexUsageExample(t *testing.T) {
 	}
 
 	// Verify metadata
-	meta1, _ := GetMeta(item1)
+	meta1, _ := item1.GetMeta()
 	if meta1["author"] != "John Doe" {
 		t.Errorf("item1 author incorrect")
 	}
 
-	meta2, _ := GetMeta(item2)
+	meta2, _ := item2.GetMeta()
 	if meta2["author"] != "Jane Doe" {
 		t.Errorf("item2 author incorrect")
 	}
@@ -543,7 +543,7 @@ func TestReadAndModify(t *testing.T) {
 	}
 
 	// Read and get metadata
-	originalMeta, err := GetMeta(original)
+	originalMeta, err := original.GetMeta()
 	if err != nil {
 		t.Fatalf("failed to get meta: %v", err)
 	}
@@ -559,7 +559,7 @@ func TestReadAndModify(t *testing.T) {
 		t.Fatalf("failed to create modified: %v", err)
 	}
 
-	modifiedMeta, _ := GetMeta(modified)
+	modifiedMeta, _ := modified.GetMeta()
 	if modifiedMeta["version"] != float64(2) {
 		t.Error("version should be 2")
 	}

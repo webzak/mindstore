@@ -326,6 +326,21 @@ func (t *Tags) Count() (int, error) {
 	return len(t.reverse), nil
 }
 
+// GetTagCounts returns a map of tag -> count of records using that tag
+func (t *Tags) GetTagCounts() (map[string]int, error) {
+	if !t.isLoaded {
+		if err := t.load(); err != nil {
+			return nil, err
+		}
+	}
+
+	counts := make(map[string]int)
+	for tag, ids := range t.forward {
+		counts[tag] = len(ids)
+	}
+	return counts, nil
+}
+
 // Close flushes any unsaved data to storage
 func (t *Tags) Close() error {
 	return t.Flush()
