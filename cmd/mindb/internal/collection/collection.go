@@ -51,10 +51,10 @@ func Run() error {
 		return listCmd()
 	case "info":
 		return infoCmd()
-	// case "delete":
-	// 	return deleteCollection()
-	// case "feed":
-	// 	return feed()
+	case "delete":
+		return deleteCmd()
+	case "feed":
+		return feed()
 	// case "create-embeddings":
 	// 	return createEmbeddings()
 	// case "vector-search":
