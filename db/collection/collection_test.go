@@ -604,7 +604,7 @@ func TestItemTags(t *testing.T) {
 	}
 
 	noTags := itemNoTags.Tags()
-	if noTags != nil && len(noTags) != 0 {
+	if len(noTags) != 0 {
 		t.Errorf("expected nil or empty tags, got %v", noTags)
 	}
 }

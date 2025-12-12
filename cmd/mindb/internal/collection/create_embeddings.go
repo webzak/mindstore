@@ -55,7 +55,9 @@ func parseCreateEmbeddingsFlags() (*createEmbeddingsFlags, error) {
 
 	// Required flags
 	fs.StringVar(&flags.path, "path", "", "Directory path containing the collection")
+	fs.StringVar(&flags.path, "p", "", "Directory path (shorthand)")
 	fs.StringVar(&flags.name, "name", "", "Name of the collection")
+	fs.StringVar(&flags.name, "n", "", "Name of the collection (shorthand)")
 
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return nil, err

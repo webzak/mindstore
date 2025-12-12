@@ -95,7 +95,9 @@ func parseEditConfigFlags() (*editConfigFlags, error) {
 
 	// Required flags
 	fs.StringVar(&flags.path, "path", "", "Directory path where the collection is stored (required)")
+	fs.StringVar(&flags.path, "p", "", "Directory path (shorthand)")
 	fs.StringVar(&flags.name, "name", "", "Name of the collection (required)")
+	fs.StringVar(&flags.name, "n", "", "Name of the collection (shorthand)")
 
 	// Optional collection flags
 	fs.StringVar(&flags.description, "description", "", "Description of the collection")

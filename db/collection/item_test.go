@@ -1,8 +1,6 @@
 package collection
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 )
@@ -563,23 +561,4 @@ func TestReadAndModify(t *testing.T) {
 	if modifiedMeta["version"] != float64(2) {
 		t.Error("version should be 2")
 	}
-}
-
-func cleanupTestDir(dir string) {
-	os.RemoveAll(dir)
-}
-
-func createTestCollection(t *testing.T) (*Collection, string) {
-	tmpDir := filepath.Join(os.TempDir(), "mindstore_test_"+t.Name())
-	if err := os.MkdirAll(tmpDir, 0755); err != nil {
-		t.Fatalf("failed to create temp dir: %v", err)
-	}
-
-	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
-	if err != nil {
-		cleanupTestDir(tmpDir)
-		t.Fatalf("failed to create collection: %v", err)
-	}
-
-	return coll, tmpDir
 }

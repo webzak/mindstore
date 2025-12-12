@@ -72,7 +72,9 @@ func parseAppendFlags() (*appendFlags, error) {
 
 	// Required flags
 	fs.StringVar(&flags.path, "path", "", "Directory path containing the collection (required)")
+	fs.StringVar(&flags.path, "p", "", "Directory path (shorthand)")
 	fs.StringVar(&flags.name, "name", "", "Name of the collection (required)")
+	fs.StringVar(&flags.name, "n", "", "Name of the collection (shorthand)")
 
 	// Text input flags (mutually exclusive)
 	fs.StringVar(&flags.text, "text", "", "Text content to append (mutually exclusive with --text-file)")
@@ -205,7 +207,7 @@ func appendCmd() error {
 	// Build and append item
 	item := coll.AddText(flags.text)
 
-	if metadata != nil && len(metadata) > 0 {
+	if len(metadata) > 0 {
 		item = item.WithMetadata(metadata)
 	}
 
@@ -230,7 +232,7 @@ func appendCmd() error {
 	if len(tags) > 0 {
 		fmt.Printf("  Tags: %d\n", len(tags))
 	}
-	if metadata != nil && len(metadata) > 0 {
+	if len(metadata) > 0 {
 		fmt.Printf("  Metadata: %d fields\n", len(metadata))
 	}
 

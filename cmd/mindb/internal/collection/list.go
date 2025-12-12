@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	visual "github.com/webzak/mindstore/cmd/mindb/internal/content/text/preview"
+	visual "github.com/webzak/mindstore/cmd/mindb/internal/content/preview"
 	"github.com/webzak/mindstore/db/collection"
 )
 
@@ -44,7 +44,9 @@ func parseListFlags() (*listFlags, error) {
 
 	// Required flags
 	fs.StringVar(&flags.path, "path", "", "Directory path containing the collection (required)")
+	fs.StringVar(&flags.path, "p", "", "Directory path (shorthand)")
 	fs.StringVar(&flags.name, "name", "", "Name of the collection (required)")
+	fs.StringVar(&flags.name, "n", "", "Name of the collection (shorthand)")
 
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return nil, err
@@ -111,7 +113,7 @@ func listCmd() error {
 		}
 
 		// Metadata
-		if meta := item.Meta(); meta != nil && len(meta) > 0 {
+		if meta := item.Meta(); len(meta) > 0 {
 			fmt.Printf("Metadata:\n%s\n\n", visual.MetadataShort(meta))
 		}
 
@@ -126,7 +128,7 @@ func listCmd() error {
 		}
 
 		// Vector (show in preview format when it exists)
-		if vec := item.Vector(); vec != nil && len(vec) > 0 {
+		if vec := item.Vector(); len(vec) > 0 {
 			fmt.Printf("Vector:\n%s\n\n", visual.VectorShort(vec))
 		}
 

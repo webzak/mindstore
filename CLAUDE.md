@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Never suggest or use `rm -rf` commands, ask user to clean the files.
 
+## Coding guidelines.
+
+Do not use pattern if x != nil && len(x) > 0, because len function of nil equals nil, it is enoug to write len(x) > 0.
+
 ## Overview
 
 **mindstore** is a high-performance Go library for managing datasets with support for:

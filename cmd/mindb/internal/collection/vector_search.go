@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	visual "github.com/webzak/mindstore/cmd/mindb/internal/content/text/preview"
+	visual "github.com/webzak/mindstore/cmd/mindb/internal/content/preview"
 	"github.com/webzak/mindstore/db/collection"
 	"github.com/webzak/mindstore/embeddings"
 	"github.com/webzak/mindstore/embeddings/llamacpp"
@@ -67,7 +67,9 @@ func parseVectorSearchFlags() (*vectorSearchFlags, error) {
 
 	// Required flags
 	fs.StringVar(&flags.path, "path", "", "Directory path containing the collection")
+	fs.StringVar(&flags.path, "p", "", "Directory path (shorthand)")
 	fs.StringVar(&flags.name, "name", "", "Name of the collection")
+	fs.StringVar(&flags.name, "n", "", "Name of the collection (shorthand)")
 	fs.StringVar(&flags.text, "text", "", "Search query text")
 
 	// Optional flags
@@ -194,7 +196,7 @@ func vectorSearch() error {
 		}
 
 		// Metadata
-		if meta := result.Item.Meta(); meta != nil && len(meta) > 0 {
+		if meta := result.Item.Meta(); len(meta) > 0 {
 			fmt.Printf("Metadata:\n%s\n\n", visual.MetadataShort(meta))
 		}
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	visual "github.com/webzak/mindstore/cmd/mindb/internal/content/text/preview"
+	visual "github.com/webzak/mindstore/cmd/mindb/internal/content/preview"
 	"github.com/webzak/mindstore/db/collection"
 )
 
@@ -53,7 +53,9 @@ func parseReadFlags() (*readFlags, error) {
 
 	// Required flags
 	fs.StringVar(&flags.path, "path", "", "Directory path containing the collection (required)")
+	fs.StringVar(&flags.path, "p", "", "Directory path (shorthand)")
 	fs.StringVar(&flags.name, "name", "", "Name of the collection (required)")
+	fs.StringVar(&flags.name, "n", "", "Name of the collection (shorthand)")
 	fs.IntVar(&flags.index, "index", -1, "Record ID to read (required)")
 	fs.IntVar(&flags.index, "i", -1, "Record ID to read (shorthand)")
 
@@ -120,7 +122,7 @@ func readCmd() error {
 	}
 
 	// Metadata
-	if meta := item.Meta(); meta != nil && len(meta) > 0 {
+	if meta := item.Meta(); len(meta) > 0 {
 		fmt.Printf("Metadata:\n%s\n\n", visual.MetadataShort(meta))
 	}
 

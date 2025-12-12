@@ -62,7 +62,9 @@ func parseDeleteFlags() (*deleteFlags, error) {
 	}
 
 	fs.StringVar(&flags.path, "path", "", "Directory path containing the collection")
+	fs.StringVar(&flags.path, "p", "", "Directory path (shorthand)")
 	fs.StringVar(&flags.name, "name", "", "Name of the collection (required)")
+	fs.StringVar(&flags.name, "n", "", "Name of the collection (shorthand)")
 	fs.BoolVar(&flags.force, "force", false, "Skip confirmation prompt (for scripts)")
 
 	if err := fs.Parse(os.Args[1:]); err != nil {

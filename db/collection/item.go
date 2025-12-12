@@ -116,7 +116,7 @@ func (i *Item) Apply() (*dataset.Item, error) {
 	// Serialize metadata to JSON if present
 	var metaBytes []byte
 	var err error
-	if i.meta != nil && len(i.meta) > 0 {
+	if len(i.meta) > 0 {
 		metaBytes, err = json.Marshal(i.meta)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal metadata: %w", err)

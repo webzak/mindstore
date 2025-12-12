@@ -52,7 +52,9 @@ func parseFeedFlags() (*feedFlags, error) {
 
 	// Required flags
 	fs.StringVar(&flags.path, "path", "", "Directory path containing the collection")
+	fs.StringVar(&flags.path, "p", "", "Directory path (shorthand)")
 	fs.StringVar(&flags.name, "name", "", "Name of the collection")
+	fs.StringVar(&flags.name, "n", "", "Name of the collection (shorthand)")
 	fs.StringVar(&flags.file, "file", "", "Path to input file to parse")
 	fs.StringVar(&flags.parser, "parser", "", "Parser to use (ct7)")
 

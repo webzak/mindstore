@@ -43,7 +43,9 @@ func parseClearEmbeddingsFlags() (*clearEmbeddingsFlags, error) {
 	}
 
 	fs.StringVar(&flags.path, "path", "", "Directory path (required)")
+	fs.StringVar(&flags.path, "p", "", "Directory path (shorthand)")
 	fs.StringVar(&flags.name, "name", "", "Collection name (required)")
+	fs.StringVar(&flags.name, "n", "", "Collection name (shorthand)")
 
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return nil, err
