@@ -16,17 +16,19 @@ mindb collection <subcommand> [flags]
 
 Available Subcommands:
 
-  create    Create a new collection
-  append    Append text to a collection
-  read      Read a single record by ID
-  list      List all collections in a path
-  info      Show information about a collection
-  delete    Delete a collection
-  add       Add text to a collection
-  feed      Feed text from a file to a collection
+  create             Create a new collection
+  append             Append text to a collection
+  read               Read a single record by ID
+  list               List all records in collection
+  info               Show information about a collection
+  delete             Delete a collection
+  add                Add text to a collection
+  feed               Feed text from a file to a collection
   create-embeddings  Regenerate embeddings for all records
-  rows      Display collection records
-  vector-search  Perform vector search on a collection
+  clear-embeddings   Clear all vector embeddings from a collection
+  edit-config        Edit collection configuration
+  rows               Display collection records
+  vector-search      Perform vector search on a collection
 
 Use 'mindb collection <subcommand> --help' for more information about a subcommand
 `
@@ -57,6 +59,10 @@ func Run() error {
 		return feed()
 	case "create-embeddings":
 		return createEmbeddings()
+	case "clear-embeddings":
+		return clearEmbeddings()
+	case "edit-config":
+		return editConfig()
 	case "vector-search":
 		return vectorSearch()
 	case "help", "-h", "--help":

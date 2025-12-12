@@ -1,6 +1,7 @@
 package collection
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -9,15 +10,13 @@ import (
 func TestCreateCollection(t *testing.T) {
 	tempDir := t.TempDir()
 
-	// Create options with embedders
-	opts := DefaultOptions()
-	opts.DatasetOptions.VectorSize = 384
-	opts.Embedders["llamacpp-text"] = map[string]any{
-		"base_url": "http://localhost:3311",
-	}
+	// Create config with embedders
+	cfg := DefaultConfig()
+	cfg.DatasetOptions.VectorSize = 384
+	cfg.Embedders["llamacpp-text"] = json.RawMessage(`{"base_url":"http://localhost:3311"}`)
 
 	// Create collection
-	coll, err := CreateCollection(tempDir, "test_collection", opts)
+	coll, err := CreateCollection(tempDir, "test_collection", cfg)
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -51,14 +50,11 @@ func TestOpenCollection(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Create a collection first
-	opts := DefaultOptions()
-	opts.DatasetOptions.VectorSize = 512
-	opts.Embedders["openai-image"] = map[string]any{
-		"api_key": "sk-test",
-		"model":   "clip",
-	}
+	cfg := DefaultConfig()
+	cfg.DatasetOptions.VectorSize = 512
+	cfg.Embedders["openai-image"] = json.RawMessage(`{"api_key":"sk-test","model":"clip"}`)
 
-	coll1, err := CreateCollection(tempDir, "test_open", opts)
+	coll1, err := CreateCollection(tempDir, "test_open", cfg)
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -102,25 +98,17 @@ func TestOpenCollection(t *testing.T) {
 func TestCreateOpenRoundTrip(t *testing.T) {
 	tempDir := t.TempDir()
 
-	// Create options with multiple embedders and custom options
-	originalOpts := DefaultOptions()
-	originalOpts.DatasetOptions.VectorSize = 768
-	originalOpts.DatasetOptions.MaxDataAppendBufferSize = 512 * 1024
+	// Create config with multiple embedders and custom options
+	originalCfg := DefaultConfig()
+	originalCfg.DatasetOptions.VectorSize = 768
+	originalCfg.DatasetOptions.MaxDataAppendBufferSize = 512 * 1024
 
-	originalOpts.Embedders["llamacpp-text"] = map[string]any{
-		"base_url": "http://localhost:3311",
-		"model":    "text",
-	}
-	originalOpts.Embedders["openai-image"] = map[string]any{
-		"api_key": "sk-test",
-		"model":   "clip",
-	}
-	originalOpts.Embedders["custom"] = map[string]any{
-		"endpoint": "https://example.com",
-	}
+	originalCfg.Embedders["llamacpp-text"] = json.RawMessage(`{"base_url":"http://localhost:3311","model":"text"}`)
+	originalCfg.Embedders["openai-image"] = json.RawMessage(`{"api_key":"sk-test","model":"clip"}`)
+	originalCfg.Embedders["custom"] = json.RawMessage(`{"endpoint":"https://example.com"}`)
 
 	// Create collection
-	coll1, err := CreateCollection(tempDir, "roundtrip", originalOpts)
+	coll1, err := CreateCollection(tempDir, "roundtrip", originalCfg)
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -134,13 +122,13 @@ func TestCreateOpenRoundTrip(t *testing.T) {
 	defer coll2.Close()
 
 	// Verify dataset options match
-	if coll2.cfg.DatasetOptions.VectorSize != originalOpts.DatasetOptions.VectorSize {
+	if coll2.cfg.DatasetOptions.VectorSize != originalCfg.DatasetOptions.VectorSize {
 		t.Errorf("VectorSize mismatch: expected %d, got %d",
-			originalOpts.DatasetOptions.VectorSize, coll2.cfg.DatasetOptions.VectorSize)
+			originalCfg.DatasetOptions.VectorSize, coll2.cfg.DatasetOptions.VectorSize)
 	}
-	if coll2.cfg.DatasetOptions.MaxDataAppendBufferSize != originalOpts.DatasetOptions.MaxDataAppendBufferSize {
+	if coll2.cfg.DatasetOptions.MaxDataAppendBufferSize != originalCfg.DatasetOptions.MaxDataAppendBufferSize {
 		t.Errorf("MaxDataAppendBufferSize mismatch: expected %d, got %d",
-			originalOpts.DatasetOptions.MaxDataAppendBufferSize, coll2.cfg.DatasetOptions.MaxDataAppendBufferSize)
+			originalCfg.DatasetOptions.MaxDataAppendBufferSize, coll2.cfg.DatasetOptions.MaxDataAppendBufferSize)
 	}
 
 	// Verify all embedders match
@@ -149,13 +137,13 @@ func TestCreateOpenRoundTrip(t *testing.T) {
 		t.Fatalf("failed to get embedders config: %v", err)
 	}
 
-	if len(embedders) != len(originalOpts.Embedders) {
+	if len(embedders) != len(originalCfg.Embedders) {
 		t.Errorf("embedders count mismatch: expected %d, got %d",
-			len(originalOpts.Embedders), len(embedders))
+			len(originalCfg.Embedders), len(embedders))
 	}
 
 	// Verify each embedder
-	for name := range originalOpts.Embedders {
+	for name := range originalCfg.Embedders {
 		if _, ok := embedders[name]; !ok {
 			t.Errorf("embedder %s not found in opened collection", name)
 		}
@@ -165,16 +153,11 @@ func TestCreateOpenRoundTrip(t *testing.T) {
 func TestGetEmbeddersConfig(t *testing.T) {
 	tempDir := t.TempDir()
 
-	opts := DefaultOptions()
-	opts.Embedders["llamacpp-text"] = map[string]any{
-		"base_url": "http://localhost:3311",
-		"model":    "text",
-	}
-	opts.Embedders["openai-image"] = map[string]any{
-		"api_key": "sk-test",
-	}
+	cfg := DefaultConfig()
+	cfg.Embedders["llamacpp-text"] = json.RawMessage(`{"base_url":"http://localhost:3311","model":"text"}`)
+	cfg.Embedders["openai-image"] = json.RawMessage(`{"api_key":"sk-test"}`)
 
-	coll, err := CreateCollection(tempDir, "test_get", opts)
+	coll, err := CreateCollection(tempDir, "test_get", cfg)
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -218,8 +201,8 @@ func TestGetEmbeddersConfigEmpty(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Create collection with no embedders
-	opts := DefaultOptions()
-	coll, err := CreateCollection(tempDir, "test_empty", opts)
+	cfg := DefaultConfig()
+	coll, err := CreateCollection(tempDir, "test_empty", cfg)
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -257,8 +240,8 @@ func TestCreateCollectionInvalidPath(t *testing.T) {
 	}
 
 	// Try to create collection "inside" the file
-	opts := DefaultOptions()
-	_, err := CreateCollection(filePath, "test", opts)
+	cfg := DefaultConfig()
+	_, err := CreateCollection(filePath, "test", cfg)
 	if err == nil {
 		t.Error("expected error when creating collection in invalid path, got nil")
 	}
@@ -267,10 +250,10 @@ func TestCreateCollectionInvalidPath(t *testing.T) {
 func TestCollectionRead(t *testing.T) {
 	tempDir := t.TempDir()
 
-	opts := DefaultOptions()
-	opts.DatasetOptions.VectorSize = 4
+	cfg := DefaultConfig()
+	cfg.DatasetOptions.VectorSize = 4
 
-	coll, err := CreateCollection(tempDir, "test_read", opts)
+	coll, err := CreateCollection(tempDir, "test_read", cfg)
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -336,10 +319,10 @@ func TestCollectionRead(t *testing.T) {
 func TestCollectionReadWithVector(t *testing.T) {
 	tempDir := t.TempDir()
 
-	opts := DefaultOptions()
-	opts.DatasetOptions.VectorSize = 4
+	cfg := DefaultConfig()
+	cfg.DatasetOptions.VectorSize = 4
 
-	coll, err := CreateCollection(tempDir, "test_read_vec", opts)
+	coll, err := CreateCollection(tempDir, "test_read_vec", cfg)
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -393,7 +376,7 @@ func TestCollectionReadWithVector(t *testing.T) {
 func TestCollectionReadNonExistent(t *testing.T) {
 	tempDir := t.TempDir()
 
-	coll, err := CreateCollection(tempDir, "test_read_err", DefaultOptions())
+	coll, err := CreateCollection(tempDir, "test_read_err", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -409,7 +392,7 @@ func TestCollectionReadNonExistent(t *testing.T) {
 func TestCollectionReadNoMetadata(t *testing.T) {
 	tempDir := t.TempDir()
 
-	coll, err := CreateCollection(tempDir, "test_read_nometa", DefaultOptions())
+	coll, err := CreateCollection(tempDir, "test_read_nometa", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -445,10 +428,10 @@ func TestCollectionReadNoMetadata(t *testing.T) {
 func TestItemTextData(t *testing.T) {
 	tempDir := t.TempDir()
 
-	opts := DefaultOptions()
-	opts.DatasetOptions.VectorSize = 2
+	cfg := DefaultConfig()
+	cfg.DatasetOptions.VectorSize = 2
 
-	coll, err := CreateCollection(tempDir, "test_textdata", opts)
+	coll, err := CreateCollection(tempDir, "test_textdata", cfg)
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -507,7 +490,7 @@ func TestItemTextData(t *testing.T) {
 func TestItemMetaValue(t *testing.T) {
 	tempDir := t.TempDir()
 
-	coll, err := CreateCollection(tempDir, "test_metavalue", DefaultOptions())
+	coll, err := CreateCollection(tempDir, "test_metavalue", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -573,7 +556,7 @@ func TestItemMetaValue(t *testing.T) {
 func TestItemTags(t *testing.T) {
 	tempDir := t.TempDir()
 
-	coll, err := CreateCollection(tempDir, "test_tags", DefaultOptions())
+	coll, err := CreateCollection(tempDir, "test_tags", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -629,7 +612,7 @@ func TestItemTags(t *testing.T) {
 func TestItemGroupAndPlace(t *testing.T) {
 	tempDir := t.TempDir()
 
-	coll, err := CreateCollection(tempDir, "test_group", DefaultOptions())
+	coll, err := CreateCollection(tempDir, "test_group", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -713,7 +696,7 @@ func TestItemGroupAndPlace(t *testing.T) {
 func TestItemFlags(t *testing.T) {
 	tempDir := t.TempDir()
 
-	coll, err := CreateCollection(tempDir, "test_flags", DefaultOptions())
+	coll, err := CreateCollection(tempDir, "test_flags", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -759,10 +742,10 @@ func TestItemFlags(t *testing.T) {
 func TestItemDataDescriptor(t *testing.T) {
 	tempDir := t.TempDir()
 
-	opts := DefaultOptions()
-	opts.DatasetOptions.VectorSize = 2
+	cfg := DefaultConfig()
+	cfg.DatasetOptions.VectorSize = 2
 
-	coll, err := CreateCollection(tempDir, "test_descriptor", opts)
+	coll, err := CreateCollection(tempDir, "test_descriptor", cfg)
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -814,10 +797,10 @@ func TestItemDataDescriptor(t *testing.T) {
 func TestCollectionApplyReadRoundtrip(t *testing.T) {
 	tempDir := t.TempDir()
 
-	opts := DefaultOptions()
-	opts.DatasetOptions.VectorSize = 4
+	cfg := DefaultConfig()
+	cfg.DatasetOptions.VectorSize = 4
 
-	coll, err := CreateCollection(tempDir, "test_roundtrip", opts)
+	coll, err := CreateCollection(tempDir, "test_roundtrip", cfg)
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}

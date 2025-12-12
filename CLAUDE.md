@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Security restrictions.
+
+Never suggest or use `rm -rf` commands, ask user to clean the files.
+
 ## Overview
 
 **mindstore** is a high-performance Go library for managing datasets with support for:

@@ -7,133 +7,66 @@ import (
 	"github.com/webzak/mindstore/db/dataset"
 )
 
-func TestDefaultOptions(t *testing.T) {
-	opts := DefaultOptions()
+func TestDefaultConfig(t *testing.T) {
+	cfg := DefaultConfig()
 
 	// Verify dataset options are set to defaults
 	defaultDatasetOpts := dataset.DefaultOptions()
-	if opts.DatasetOptions.VectorSize != defaultDatasetOpts.VectorSize {
-		t.Errorf("expected VectorSize %d, got %d", defaultDatasetOpts.VectorSize, opts.DatasetOptions.VectorSize)
+	if cfg.DatasetOptions.VectorSize != defaultDatasetOpts.VectorSize {
+		t.Errorf("expected VectorSize %d, got %d", defaultDatasetOpts.VectorSize, cfg.DatasetOptions.VectorSize)
 	}
-	if opts.DatasetOptions.MaxDataAppendBufferSize != defaultDatasetOpts.MaxDataAppendBufferSize {
-		t.Errorf("expected MaxDataAppendBufferSize %d, got %d", defaultDatasetOpts.MaxDataAppendBufferSize, opts.DatasetOptions.MaxDataAppendBufferSize)
+	if cfg.DatasetOptions.MaxDataAppendBufferSize != defaultDatasetOpts.MaxDataAppendBufferSize {
+		t.Errorf("expected MaxDataAppendBufferSize %d, got %d", defaultDatasetOpts.MaxDataAppendBufferSize, cfg.DatasetOptions.MaxDataAppendBufferSize)
 	}
 
 	// Verify embedders map is initialized but empty
-	if opts.Embedders == nil {
+	if cfg.Embedders == nil {
 		t.Error("expected Embedders map to be initialized")
 	}
-	if len(opts.Embedders) != 0 {
-		t.Errorf("expected Embedders map to be empty, got %d entries", len(opts.Embedders))
+	if len(cfg.Embedders) != 0 {
+		t.Errorf("expected Embedders map to be empty, got %d entries", len(cfg.Embedders))
+	}
+
+	// Verify description is empty by default
+	if cfg.Description != "" {
+		t.Errorf("expected empty Description, got %q", cfg.Description)
 	}
 }
 
-func TestOptionsWithEmbedders(t *testing.T) {
-	opts := DefaultOptions()
+func TestConfigWithEmbedders(t *testing.T) {
+	cfg := DefaultConfig()
 
-	// Add embedders directly to map
-	opts.Embedders["llamacpp-text"] = map[string]any{
-		"base_url": "http://localhost:3311",
-		"model":    "text-embedding",
+	// Add embedders as json.RawMessage
+	cfg.Embedders["llamacpp-text"] = json.RawMessage(`{"base_url":"http://localhost:3311","model":"text-embedding"}`)
+	cfg.Embedders["openai-image"] = json.RawMessage(`{"api_key":"sk-test","model":"clip"}`)
+
+	if len(cfg.Embedders) != 2 {
+		t.Errorf("expected 2 embedders, got %d", len(cfg.Embedders))
 	}
 
-	opts.Embedders["openai-image"] = map[string]any{
-		"api_key": "sk-test",
-		"model":   "clip",
-	}
-
-	if len(opts.Embedders) != 2 {
-		t.Errorf("expected 2 embedders, got %d", len(opts.Embedders))
-	}
-
-	// Verify configs are stored correctly
-	llamaCfg, ok := opts.Embedders["llamacpp-text"].(map[string]any)
-	if !ok {
-		t.Error("llamacpp-text config is not map[string]any")
+	// Verify embedders can be unmarshaled
+	var llamaCfg map[string]any
+	if err := json.Unmarshal(cfg.Embedders["llamacpp-text"], &llamaCfg); err != nil {
+		t.Errorf("failed to unmarshal llamacpp-text: %v", err)
 	} else if llamaCfg["base_url"] != "http://localhost:3311" {
 		t.Errorf("llamacpp-text base_url mismatch")
 	}
 
-	openaiCfg, ok := opts.Embedders["openai-image"].(map[string]any)
-	if !ok {
-		t.Error("openai-image config is not map[string]any")
+	var openaiCfg map[string]any
+	if err := json.Unmarshal(cfg.Embedders["openai-image"], &openaiCfg); err != nil {
+		t.Errorf("failed to unmarshal openai-image: %v", err)
 	} else if openaiCfg["api_key"] != "sk-test" {
 		t.Errorf("openai-image api_key mismatch")
 	}
 }
 
-func TestInternalConfigConversion(t *testing.T) {
-	// Create Options with embedders
-	opts := DefaultOptions()
-	opts.DatasetOptions.VectorSize = 384
-	opts.DatasetOptions.MaxDataAppendBufferSize = 256 * 1024
+func TestConfigJSONSerialization(t *testing.T) {
+	// Create Config with embedders
+	cfg := DefaultConfig()
+	cfg.DatasetOptions.VectorSize = 384
+	cfg.Description = "Test collection"
 
-	opts.Embedders["llamacpp-text"] = map[string]any{
-		"base_url": "http://localhost:3311",
-		"model":    "text",
-	}
-	opts.Embedders["openai-image"] = map[string]any{
-		"api_key": "sk-test",
-		"model":   "clip",
-	}
-
-	// Convert to internal config
-	cfg, err := opts.toConfig()
-	if err != nil {
-		t.Fatalf("failed to convert to config: %v", err)
-	}
-
-	// Verify dataset options
-	if cfg.DatasetOptions.VectorSize != opts.DatasetOptions.VectorSize {
-		t.Errorf("VectorSize mismatch: expected %d, got %d",
-			opts.DatasetOptions.VectorSize, cfg.DatasetOptions.VectorSize)
-	}
-
-	// Verify embedders were marshaled
-	if len(cfg.Embedders) != len(opts.Embedders) {
-		t.Errorf("embedders count mismatch: expected %d, got %d",
-			len(opts.Embedders), len(cfg.Embedders))
-	}
-
-	// Verify embedders are json.RawMessage
-	for name := range opts.Embedders {
-		if _, ok := cfg.Embedders[name]; !ok {
-			t.Errorf("embedder %s not found in config", name)
-		}
-	}
-
-	// Convert back to Options
-	opts2, err := cfg.toOptions()
-	if err != nil {
-		t.Fatalf("failed to convert back to options: %v", err)
-	}
-
-	// Verify round-trip
-	if opts2.DatasetOptions.VectorSize != opts.DatasetOptions.VectorSize {
-		t.Errorf("VectorSize mismatch after round-trip: expected %d, got %d",
-			opts.DatasetOptions.VectorSize, opts2.DatasetOptions.VectorSize)
-	}
-
-	if len(opts2.Embedders) != len(opts.Embedders) {
-		t.Errorf("embedders count mismatch after round-trip: expected %d, got %d",
-			len(opts.Embedders), len(opts2.Embedders))
-	}
-}
-
-func TestInternalConfigJSONSerialization(t *testing.T) {
-	// Create Options and convert to internal config
-	opts := DefaultOptions()
-	opts.DatasetOptions.VectorSize = 384
-
-	opts.Embedders["llamacpp-text"] = map[string]any{
-		"base_url": "http://localhost:3311",
-	}
-
-	// Convert to internal config
-	cfg, err := opts.toConfig()
-	if err != nil {
-		t.Fatalf("failed to convert to config: %v", err)
-	}
+	cfg.Embedders["llamacpp-text"] = json.RawMessage(`{"base_url":"http://localhost:3311"}`)
 
 	// Serialize to JSON
 	data, err := json.Marshal(cfg)
@@ -142,7 +75,7 @@ func TestInternalConfigJSONSerialization(t *testing.T) {
 	}
 
 	// Deserialize from JSON
-	var decoded config
+	var decoded Config
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		t.Fatalf("failed to unmarshal config: %v", err)
 	}
@@ -153,9 +86,60 @@ func TestInternalConfigJSONSerialization(t *testing.T) {
 			cfg.DatasetOptions.VectorSize, decoded.DatasetOptions.VectorSize)
 	}
 
+	// Verify description
+	if decoded.Description != cfg.Description {
+		t.Errorf("Description mismatch: expected %q, got %q",
+			cfg.Description, decoded.Description)
+	}
+
 	// Verify embedders
 	if len(decoded.Embedders) != len(cfg.Embedders) {
 		t.Errorf("embedders count mismatch: expected %d, got %d",
 			len(cfg.Embedders), len(decoded.Embedders))
+	}
+}
+
+func TestConfigWithDescription(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Description = "My test collection for embeddings"
+	cfg.DatasetOptions.VectorSize = 512
+
+	// Serialize to JSON
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatalf("failed to marshal config: %v", err)
+	}
+
+	// Deserialize
+	var decoded Config
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("failed to unmarshal config: %v", err)
+	}
+
+	// Verify description persisted
+	if decoded.Description != cfg.Description {
+		t.Errorf("expected Description %q, got %q", cfg.Description, decoded.Description)
+	}
+}
+
+func TestConfigDescriptionOmitEmpty(t *testing.T) {
+	// Config without description
+	cfg := DefaultConfig()
+	cfg.DatasetOptions.VectorSize = 384
+
+	// Serialize to JSON
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatalf("failed to marshal config: %v", err)
+	}
+
+	// Verify "description" field is not in JSON
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		t.Fatalf("failed to unmarshal to map: %v", err)
+	}
+
+	if _, exists := raw["description"]; exists {
+		t.Error("expected description field to be omitted when empty")
 	}
 }

@@ -22,6 +22,8 @@ Required Flags:
         Name of the collection
 
 Optional Flags:
+  --description string
+        Description of the collection
   --vector-size int
         Vector dimensions (default: 768)
   --max-data-buffer int
@@ -77,6 +79,7 @@ Embedder JSON Format:
 type createFlags struct {
 	path                        string
 	name                        string
+	description                 string
 	vectorSize                  int
 	maxDataAppendBufferSize     int
 	maxMetaDataAppendBufferSize int
@@ -99,6 +102,9 @@ func parseCreateFlags() (*createFlags, error) {
 	// Required flags
 	fs.StringVar(&flags.path, "path", "", "Directory path where the collection will be stored (required)")
 	fs.StringVar(&flags.name, "name", "", "Name of the collection (required)")
+
+	// Optional collection flags
+	fs.StringVar(&flags.description, "description", "", "Description of the collection")
 
 	// Optional dataset flags with defaults
 	fs.IntVar(&flags.vectorSize, "vector-size", dataset.DefaultVectorSize, "Vector dimensions")
@@ -139,14 +145,15 @@ func create() error {
 		return err
 	}
 
-	// Step 2: Build collection options
-	opts := collection.DefaultOptions()
-	opts.DatasetOptions.VectorSize = flags.vectorSize
-	opts.DatasetOptions.MaxDataAppendBufferSize = flags.maxDataAppendBufferSize
-	opts.DatasetOptions.MaxMetaDataAppendBufferSize = flags.maxMetaDataAppendBufferSize
-	opts.DatasetOptions.MaxIndexAppendBufferSize = flags.maxIndexAppendBufferSize
-	opts.DatasetOptions.MaxVectorBufferSize = flags.maxVectorBufferSize
-	opts.DatasetOptions.MaxVectorAppendBufferSize = flags.maxVectorAppendBufferSize
+	// Step 2: Build collection config
+	cfg := collection.DefaultConfig()
+	cfg.Description = flags.description
+	cfg.DatasetOptions.VectorSize = flags.vectorSize
+	cfg.DatasetOptions.MaxDataAppendBufferSize = flags.maxDataAppendBufferSize
+	cfg.DatasetOptions.MaxMetaDataAppendBufferSize = flags.maxMetaDataAppendBufferSize
+	cfg.DatasetOptions.MaxIndexAppendBufferSize = flags.maxIndexAppendBufferSize
+	cfg.DatasetOptions.MaxVectorBufferSize = flags.maxVectorBufferSize
+	cfg.DatasetOptions.MaxVectorAppendBufferSize = flags.maxVectorAppendBufferSize
 
 	// Step 3: Handle embedder configuration
 	// First, try to load from file if provided
@@ -159,7 +166,14 @@ func create() error {
 		if err := json.Unmarshal(fileData, &embedders); err != nil {
 			return fmt.Errorf("failed to parse embedders file JSON: %w", err)
 		}
-		opts.Embedders = embedders
+		// Convert to json.RawMessage
+		for name, embedderCfg := range embedders {
+			data, err := json.Marshal(embedderCfg)
+			if err != nil {
+				return fmt.Errorf("failed to marshal embedder %s: %w", name, err)
+			}
+			cfg.Embedders[name] = data
+		}
 	}
 
 	// Then, override with inline JSON if provided (takes precedence)
@@ -168,11 +182,18 @@ func create() error {
 		if err := json.Unmarshal([]byte(flags.embedders), &embedders); err != nil {
 			return fmt.Errorf("failed to parse embedders JSON: %w", err)
 		}
-		opts.Embedders = embedders
+		// Convert to json.RawMessage
+		for name, embedderCfg := range embedders {
+			data, err := json.Marshal(embedderCfg)
+			if err != nil {
+				return fmt.Errorf("failed to marshal embedder %s: %w", name, err)
+			}
+			cfg.Embedders[name] = data
+		}
 	}
 
 	// Step 4: Create collection
-	coll, err := collection.CreateCollection(flags.path, flags.name, opts)
+	coll, err := collection.CreateCollection(flags.path, flags.name, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to create collection: %w", err)
 	}
@@ -180,9 +201,9 @@ func create() error {
 
 	fmt.Printf("Collection '%s' created successfully at %s\n", flags.name, flags.path)
 	fmt.Printf("  Vector size: %d\n", flags.vectorSize)
-	if len(opts.Embedders) > 0 {
-		fmt.Printf("  Embedders configured: %d\n", len(opts.Embedders))
-		for name := range opts.Embedders {
+	if len(cfg.Embedders) > 0 {
+		fmt.Printf("  Embedders configured: %d\n", len(cfg.Embedders))
+		for name := range cfg.Embedders {
 			fmt.Printf("    - %s\n", name)
 		}
 	}

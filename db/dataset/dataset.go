@@ -266,6 +266,45 @@ func (c *Dataset) Close() error {
 	return nil
 }
 
+// ClearVectors removes all vectors and updates index to reflect removal
+// This is used when changing vector dimensions or explicitly clearing embeddings
+func (c *Dataset) ClearVectors() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.closed {
+		return ErrDatasetClosed
+	}
+
+	// Step 1: Truncate vectors storage (removes all vector data)
+	if err := c.vectors.Truncate(); err != nil {
+		return fmt.Errorf("failed to truncate vectors: %w", err)
+	}
+
+	// Step 2: Update all index rows to mark vectors as removed (Vector = -1)
+	for i := 0; i < c.index.Count(); i++ {
+		row, err := c.index.Get(i)
+		if err != nil {
+			return fmt.Errorf("failed to get index row %d: %w", i, err)
+		}
+
+		// Only update if row had a vector
+		if row.Vector != -1 {
+			row.Vector = -1
+			if err := c.index.Replace(i, row); err != nil {
+				return fmt.Errorf("failed to update index row %d: %w", i, err)
+			}
+		}
+	}
+
+	// Step 3: Ensure all changes are persisted
+	if err := c.index.Flush(); err != nil {
+		return fmt.Errorf("failed to flush index: %w", err)
+	}
+
+	return nil
+}
+
 // Truncate removes all data from the dataset
 func (c *Dataset) Truncate() error {
 	c.mu.Lock()

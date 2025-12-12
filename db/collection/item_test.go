@@ -9,7 +9,7 @@ import (
 
 func TestAddText(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -33,7 +33,7 @@ func TestAddText(t *testing.T) {
 
 func TestNewItem(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -54,7 +54,7 @@ func TestNewItem(t *testing.T) {
 
 func TestWithMeta(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestWithMeta(t *testing.T) {
 
 func TestWithMetadata(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -100,7 +100,7 @@ func TestWithMetadata(t *testing.T) {
 
 func TestWithMetadataMerge(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestWithMetadataMerge(t *testing.T) {
 
 func TestWithTags(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -138,7 +138,7 @@ func TestWithTags(t *testing.T) {
 
 func TestWithTag(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -158,7 +158,7 @@ func TestWithTag(t *testing.T) {
 
 func TestWithVector(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -181,7 +181,7 @@ func TestWithVector(t *testing.T) {
 
 func TestWithFlags(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -196,7 +196,7 @@ func TestWithFlags(t *testing.T) {
 
 func TestWithGroup(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -214,7 +214,7 @@ func TestWithGroup(t *testing.T) {
 
 func TestWithNewGroup(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -232,7 +232,7 @@ func TestWithNewGroup(t *testing.T) {
 
 func TestChaining(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -252,7 +252,7 @@ func TestChaining(t *testing.T) {
 
 func TestApplySuccess(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -283,7 +283,7 @@ func TestApplySuccess(t *testing.T) {
 
 func TestApplyMetadataJSON(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -317,7 +317,7 @@ func TestApplyMetadataJSON(t *testing.T) {
 
 func TestApplyNoMetadata(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -336,7 +336,7 @@ func TestApplyNoMetadata(t *testing.T) {
 
 func TestApplyVectorSizeMismatch(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -355,7 +355,7 @@ func TestApplyVectorSizeMismatch(t *testing.T) {
 
 func TestApplyWithNewGroup(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -374,7 +374,7 @@ func TestApplyWithNewGroup(t *testing.T) {
 
 func TestGetMeta(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -404,7 +404,7 @@ func TestGetMeta(t *testing.T) {
 
 func TestGetMetaEmpty(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -428,7 +428,7 @@ func TestGetMetaEmpty(t *testing.T) {
 
 func TestGetMetaValue(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -454,7 +454,7 @@ func TestGetMetaValue(t *testing.T) {
 
 func TestGetMetaValueNotFound(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -476,7 +476,7 @@ func TestGetMetaValueNotFound(t *testing.T) {
 
 func TestComplexUsageExample(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -526,7 +526,7 @@ func TestComplexUsageExample(t *testing.T) {
 // TestReadAndModify tests reading an item and creating a modified version
 func TestReadAndModify(t *testing.T) {
 	tmpDir := t.TempDir()
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		t.Fatalf("failed to create collection: %v", err)
 	}
@@ -575,7 +575,7 @@ func createTestCollection(t *testing.T) (*Collection, string) {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
 
-	coll, err := CreateCollection(tmpDir, "test", DefaultOptions())
+	coll, err := CreateCollection(tmpDir, "test", DefaultConfig())
 	if err != nil {
 		cleanupTestDir(tmpDir)
 		t.Fatalf("failed to create collection: %v", err)

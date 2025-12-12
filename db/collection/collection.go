@@ -1,6 +1,7 @@
 package collection
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 
@@ -32,28 +33,23 @@ type Collection struct {
 	name string // Collection name
 
 	dataset *dataset.Dataset
-	cfg     config // Internal collection configuration
+	cfg     Config // Collection configuration
 }
 
-// CreateCollection creates a new collection with the given options
-func CreateCollection(path, name string, opts Options) (*Collection, error) {
+// CreateCollection creates a new collection with the given configuration
+func CreateCollection(path, name string, cfg Config) (*Collection, error) {
 	dir := filepath.Join(path, name)
 	if err := storage.EnsureDir(dir); err != nil {
 		return nil, err
 	}
 
-	// Convert Options to internal config and save to <name>.json
-	cfg, err := opts.toConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert options to config: %w", err)
-	}
-
-	if err := saveConfig(dir, name, cfg); err != nil {
+	// Save config to <name>.json
+	if err := SaveConfig(dir, name, cfg); err != nil {
 		return nil, err
 	}
 
 	// Open dataset with config options
-	ds, err := dataset.Open(path, name, opts.DatasetOptions)
+	ds, err := dataset.Open(path, name, cfg.DatasetOptions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open dataset: %w", err)
 	}
@@ -73,7 +69,7 @@ func OpenCollection(path, name string) (*Collection, error) {
 	dir := filepath.Join(path, name)
 
 	// Load internal config from <name>.json
-	cfg, err := loadConfig(dir, name)
+	cfg, err := LoadConfig(dir, name)
 	if err != nil {
 		return nil, err
 	}
@@ -102,13 +98,39 @@ func (c *Collection) Close() error {
 	return nil
 }
 
+// GetDataset returns the underlying dataset
+// This allows commands to access dataset-level operations like ClearVectors()
+func (c *Collection) GetDataset() *dataset.Dataset {
+	return c.dataset
+}
+
 // GetEmbeddersConfig returns all embedder configurations as map[string]any
+// Performs lazy unmarshaling from raw JSON to map
 func (c *Collection) GetEmbeddersConfig() (map[string]any, error) {
-	opts, err := c.cfg.toOptions()
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert config to options: %w", err)
+	result := make(map[string]any)
+	for name, rawMsg := range c.cfg.Embedders {
+		var config any
+		if err := json.Unmarshal(rawMsg, &config); err != nil {
+			return nil, fmt.Errorf("failed to parse embedder %s: %w", name, err)
+		}
+		result[name] = config
 	}
-	return opts.Embedders, nil
+	return result, nil
+}
+
+// GetEmbeddersRaw returns embedder configs as raw JSON (zero-copy)
+func (c *Collection) GetEmbeddersRaw() map[string]json.RawMessage {
+	return c.cfg.Embedders
+}
+
+// GetConfig returns a copy of the collection's configuration
+func (c *Collection) GetConfig() Config {
+	return c.cfg
+}
+
+// GetDescription returns the collection description
+func (c *Collection) GetDescription() string {
+	return c.cfg.Description
 }
 
 // IsPersisted returns true when all data is saved to disk

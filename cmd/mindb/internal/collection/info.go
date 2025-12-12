@@ -101,8 +101,11 @@ func infoCmd() error {
 		return fmt.Errorf("failed to get file sizes: %w", err)
 	}
 
+	// Get collection description
+	description := coll.GetDescription()
+
 	// Display output
-	printInfo(flags.name, embeddersConfig, stats, fileSizes)
+	printInfo(flags.name, description, embeddersConfig, stats, fileSizes)
 
 	return nil
 }
@@ -156,10 +159,17 @@ func formatBytes(bytes int64) string {
 }
 
 // printInfo displays collection information in human-readable format
-func printInfo(name string, embeddersConfig map[string]any, stats *collection.Stats, fileSizes map[string]int64) {
+func printInfo(name, description string, embeddersConfig map[string]any, stats *collection.Stats, fileSizes map[string]int64) {
 	fmt.Printf("Collection: %s\n", name)
 	fmt.Println(strings.Repeat("=", len(name)+12))
 	fmt.Println()
+
+	// Description section
+	if description != "" {
+		fmt.Println("Description:")
+		fmt.Printf("  %s\n", description)
+		fmt.Println()
+	}
 
 	// Configuration section
 	fmt.Println("Configuration:")
