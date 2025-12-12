@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/webzak/mindstore/cmd/mindb/internal/collection"
+	"github.com/webzak/mindstore/cmd/mindb/internal/list"
 	"github.com/webzak/mindstore/cmd/mindb/internal/server"
 )
 
@@ -19,6 +20,8 @@ func main() {
 	switch command {
 	case "collection", "c":
 		err = collection.Run()
+	case "list":
+		err = list.Run()
 	case "server":
 		err = server.Run()
 	case "help", "-h", "--help":
@@ -43,6 +46,7 @@ func help() {
 	fmt.Println()
 	fmt.Println("Available Commands:")
 	fmt.Println("  collection    Manage collections (create, list, info, delete)")
+	fmt.Println("  list          List all collections in a directory")
 	fmt.Println("  server        Start the mindb server")
 	fmt.Println("  help          Show this help message")
 	fmt.Println()
