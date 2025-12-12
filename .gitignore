@@ -1,6 +1,7 @@
 .vscode/
+.ai/
 p/
 think/
 .claude/
-cmd/mindb/mindb
+**/mindb
 script/
