@@ -5,47 +5,15 @@ import (
 	"io"
 	"os"
 	"sync"
+	"time"
 )
 
 const (
-	sizeMagic    = 4      // magic bytes
-	size32       = 4      // 32 bit word size
-	sizeIndexRec = 32     // index record size
+	sizeMagic    = 4       // magic bytes
+	size32       = 4       // 32 bit word size
+	sizeIndexRec = 32      // index record size
 	maxIndexCap  = 1 << 24 // ~16 million records, ~512MB index space
 )
-
-type Index struct {
-	ID         uint32
-	Flags      uint8
-	DataDesc   uint8
-	MetaDesc   uint8
-	VectorDesc uint8
-	// Position in bytes from data region in file
-	Position uint64
-	// Size of chunk
-	Size uint64
-	// Date is unix timestamp in seconds
-	Date uint64
-}
-
-// Chunk represents data chunk available for user
-// The meaning of value []byte{} is empty value
-// The meaning of value nil is we we ignored it on read operation or did not provide it on update operation
-type Chunk struct {
-	Data   []byte
-	Meta   []byte
-	Vector []byte
-}
-
-// chunkRecord represents how chunk data is saved to the file
-type chunkRecord struct {
-	dataSize   uint64
-	metaSize   uint32
-	vectorSize uint32
-	Data       []byte
-	Meta       []byte
-	Vector     []byte
-}
 
 type Dataset struct {
 	sync.Mutex
@@ -112,9 +80,11 @@ func (d *Dataset) Close() error {
 	return f.Close()
 }
 
-func (d *Dataset) ChangeIndexCap(newCap int) error {
-	d.Lock()
-	defer d.Unlock()
+func (d *Dataset) ChangeIndexCap(newCap int, useLock bool) error {
+	if useLock {
+		d.Lock()
+		defer d.Unlock()
+	}
 
 	if newCap == int(d.header.indexCap) {
 		return nil
@@ -216,11 +186,159 @@ func (d *Dataset) ChangeIndexCap(newCap int) error {
 	return nil
 }
 
-//func OpenDataset(path string) (*Dataset, error) {
-//
-// }
-//
-// // Append adds chunk data to file and returns id of added chunk
-// func Append(c Chunk, dataDesc, metaDesc, vectorDesc, flags uint8) (int, error) {
-//
-// }
+func OpenDataset(path string) (*Dataset, error) {
+	f, err := os.OpenFile(path, os.O_RDWR, 0644)
+	if err != nil {
+		return nil, err
+	}
+
+	h, err := readHeader(f)
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+
+	index, lastID, err := readIndex(f, h)
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+
+	return &Dataset{
+		f:      f,
+		path:   path,
+		header: h,
+		index:  index,
+		lastID: lastID,
+	}, nil
+}
+
+// Append adds chunk data to file and returns id of added chunk
+func (d *Dataset) Append(c Chunk) (uint32, error) {
+	d.Lock()
+	defer d.Unlock()
+
+	// Expand capacity if needed
+	if d.header.indexLen >= d.header.indexCap {
+		if err := d.ChangeIndexCap(int(d.header.indexCap)*2, false); err != nil {
+			return 0, fmt.Errorf("failed to expand index capacity: %w", err)
+		}
+	}
+
+	// Calculate chunk position - seek to end of file
+	fileSize, err := d.f.Seek(0, io.SeekEnd)
+	if err != nil {
+		return 0, fmt.Errorf("failed to seek to end: %w", err)
+	}
+	chunkPos := uint64(fileSize - d.header.dataSpacePos())
+
+	// Create and write chunk record
+	cr := &chunkRecord{
+		dataSize:   uint64(len(c.Data)),
+		metaSize:   uint32(len(c.Meta)),
+		vectorSize: uint32(len(c.Vector)),
+		Data:       c.Data,
+		Meta:       c.Meta,
+		Vector:     c.Vector,
+	}
+	if err := cr.write(d.f); err != nil {
+		return 0, fmt.Errorf("failed to write chunk: %w", err)
+	}
+
+	// Create index record
+	newID := d.lastID + 1
+	idx := Index{
+		ID:         newID,
+		Flags:      c.Flags,
+		DataDesc:   c.DataDesc,
+		MetaDesc:   c.MetaDesc,
+		VectorDesc: c.VectorDesc,
+		Position:   chunkPos,
+		Size:       uint64(cr.size()),
+		Date:       uint64(time.Now().Unix()),
+	}
+
+	// Write index record
+	idxPos := d.header.size() + int64(d.header.indexLen)*sizeIndexRec
+	if _, err := d.f.WriteAt(idx.blob(), idxPos); err != nil {
+		return 0, fmt.Errorf("failed to write index record: %w", err)
+	}
+
+	// Update header on disk
+	d.header.indexLen++
+	if _, err := d.f.WriteAt(d.header.blob(), 0); err != nil {
+		d.header.indexLen--
+		return 0, fmt.Errorf("failed to update header: %w", err)
+	}
+
+	// Sync file to disk
+	if err := d.f.Sync(); err != nil {
+		return 0, fmt.Errorf("failed to sync file: %w", err)
+	}
+
+	// Update in-memory state
+	d.index[newID] = idx
+	d.lastID = newID
+
+	return newID, nil
+}
+
+// Read retrieves a chunk by ID. By default reads all fields.
+// Pass specific fields to read selectively (e.g., FieldData, FieldMeta).
+// Non-selected fields will be nil in the returned Chunk.
+func (d *Dataset) Read(id uint32, fields ...Field) (*Chunk, error) {
+	d.Lock()
+	defer d.Unlock()
+
+	idx, ok := d.index[id]
+	if !ok {
+		return nil, fmt.Errorf("chunk with id %d not found", id)
+	}
+
+	// Determine which fields to read
+	readData, readMeta, readVector := true, true, true
+	if len(fields) > 0 {
+		readData, readMeta, readVector = false, false, false
+		for _, f := range fields {
+			switch f {
+			case FieldData:
+				readData = true
+			case FieldMeta:
+				readMeta = true
+			case FieldVector:
+				readVector = true
+			}
+		}
+	}
+
+	// Seek to chunk position
+	pos := d.header.dataSpacePos() + int64(idx.Position)
+	if _, err := d.f.Seek(pos, io.SeekStart); err != nil {
+		return nil, fmt.Errorf("failed to seek to chunk: %w", err)
+	}
+
+	// Read chunk record
+	cr, err := readChunk(d.f, idx.Size)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build Chunk with selected fields
+	chunk := &Chunk{
+		Flags:      idx.Flags,
+		DataDesc:   idx.DataDesc,
+		MetaDesc:   idx.MetaDesc,
+		VectorDesc: idx.VectorDesc,
+	}
+	if readData {
+		chunk.Data = cr.Data
+	}
+	if readMeta {
+		chunk.Meta = cr.Meta
+	}
+	if readVector {
+		chunk.Vector = cr.Vector
+	}
+
+	return chunk, nil
+}
