@@ -17,7 +17,7 @@
 - Data descriptor u8
 - Meta descriptor u8
 - Vector descriptor u8
-- Position u64 - chunk position in file
+- Position u64 - chunk position relative to data space start (not file start)
 - Size u64 - chunk size
 - Date u64 - unit datetime of last modification
 

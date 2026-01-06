@@ -96,6 +96,23 @@ func (d *Dataset) ChangeIndexCap(newCap int, useLock bool) error {
 		return fmt.Errorf("capacity %d is less than amount of records: %d", newCap, len(d.index))
 	}
 
+	// Create new header with updated capacity
+	newHeader := &header{
+		magic:      d.header.magic,
+		configSize: d.header.configSize,
+		config:     d.header.config,
+		indexCap:   uint32(newCap),
+		indexLen:   d.header.indexLen,
+	}
+
+	return d.rewriteFile(newHeader, uint32(newCap), d.header.indexLen)
+}
+
+// rewriteFile rewrites the dataset file with a new header configuration.
+// newIndexCap specifies the index space size in the new file.
+// copyIndexCount specifies how many index records to copy from original.
+// Caller must hold the lock.
+func (d *Dataset) rewriteFile(newHeader *header, newIndexCap uint32, copyIndexCount uint32) error {
 	// Create temporary file
 	tmpPath := d.path + ".tmp"
 	tmpFile, err := os.Create(tmpPath)
@@ -115,38 +132,29 @@ func (d *Dataset) ChangeIndexCap(newCap int, useLock bool) error {
 		}
 	}()
 
-	// Read header using readHeader function
-	h, err := readHeader(d.f)
-	if err != nil {
-		return err
-	}
-
-	// Update indexCap in header struct
-	h.indexCap = uint32(newCap)
-
-	// Write modified header blob
-	if _, err := tmpFile.Write(h.blob()); err != nil {
+	// Write new header blob
+	if _, err := tmpFile.Write(newHeader.blob()); err != nil {
 		return fmt.Errorf("failed to write header blob: %w", err)
 	}
 
 	// Create new index space and copy existing records
-	newIndexSpace := make([]byte, newCap*sizeIndexRec)
-	if len(d.index) > 0 {
+	newIndexSpace := make([]byte, newIndexCap*sizeIndexRec)
+	if copyIndexCount > 0 {
 		// Seek to index start in original file
 		if _, err := d.f.Seek(d.header.size(), io.SeekStart); err != nil {
 			return fmt.Errorf("failed to seek to index: %w", err)
 		}
 		// Read existing index records into the new index space buffer
-		if _, err := io.ReadFull(d.f, newIndexSpace[:len(d.index)*sizeIndexRec]); err != nil {
+		if _, err := io.ReadFull(d.f, newIndexSpace[:copyIndexCount*sizeIndexRec]); err != nil {
 			return fmt.Errorf("failed to read existing index records: %w", err)
 		}
 	}
 	// Write entire new index space (existing records + zero padding)
 	if _, err := tmpFile.Write(newIndexSpace); err != nil {
-		return fmt.Errorf("failed to write new index space: %w", err)
+		return fmt.Errorf("failed to write index space: %w", err)
 	}
 
-	// Step 7: Copy data space
+	// Copy data space
 	if _, err := d.f.Seek(d.header.dataSpacePos(), io.SeekStart); err != nil {
 		return fmt.Errorf("failed to seek to data space: %w", err)
 	}
@@ -154,7 +162,7 @@ func (d *Dataset) ChangeIndexCap(newCap int, useLock bool) error {
 		return fmt.Errorf("failed to copy data space: %w", err)
 	}
 
-	// Step 8: Sync temp file
+	// Sync temp file
 	if err := tmpFile.Sync(); err != nil {
 		return fmt.Errorf("failed to sync temp file: %w", err)
 	}
@@ -168,12 +176,12 @@ func (d *Dataset) ChangeIndexCap(newCap int, useLock bool) error {
 		return fmt.Errorf("failed to close original file: %w", err)
 	}
 
-	// Step 10: Atomically replace original with temp
+	// Atomically replace original with temp
 	if err := os.Rename(tmpPath, d.path); err != nil {
 		return fmt.Errorf("failed to replace file: %w", err)
 	}
 
-	// Step 11: Reopen the file
+	// Reopen the file
 	newFile, err := os.OpenFile(d.path, os.O_RDWR, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to reopen file: %w", err)
@@ -181,11 +189,44 @@ func (d *Dataset) ChangeIndexCap(newCap int, useLock bool) error {
 
 	// Update Dataset state
 	d.f = newFile
-	d.header.indexCap = uint32(newCap)
-
+	d.header = newHeader
+	success = true
 	return nil
 }
 
+// UpdateConfig updates the dataset configuration.
+// This rewrites the file with the new config using atomic rename.
+func (d *Dataset) UpdateConfig(config []byte, useLock bool) error {
+	if useLock {
+		d.Lock()
+		defer d.Unlock()
+	}
+
+	newHeader := &header{
+		magic:      d.header.magic,
+		configSize: uint32(len(config)),
+		config:     config,
+		indexCap:   d.header.indexCap,
+		indexLen:   d.header.indexLen,
+	}
+
+	return d.rewriteFile(newHeader, d.header.indexCap, d.header.indexLen)
+}
+
+// Config returns a copy of the current config bytes.
+func (d *Dataset) Config() []byte {
+	d.Lock()
+	defer d.Unlock()
+
+	if len(d.header.config) == 0 {
+		return nil
+	}
+	config := make([]byte, len(d.header.config))
+	copy(config, d.header.config)
+	return config
+}
+
+// OpenDataset function opens existing dataset file
 func OpenDataset(path string) (*Dataset, error) {
 	f, err := os.OpenFile(path, os.O_RDWR, 0644)
 	if err != nil {
