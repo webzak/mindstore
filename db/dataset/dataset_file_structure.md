@@ -21,6 +21,10 @@
 - Size u64 - chunk size
 - Date u64 - unit datetime of last modification
 
+#### Index flags
+
+bit 0 - if set to 1 it means that record is deleted, the flag has to be checked on read operations.
+
 ### Chunk structure
 
 Zero values for sizes mean that the appropriate blob is absent.

@@ -16,10 +16,10 @@ const (
 	FieldVector
 )
 
-// Chunk represents data chunk available for user
-// The meaning of value []byte{} is empty value
-// The meaning of value nil is we we ignored it on read operation or did not provide it on update operation
-type Chunk struct {
+// ChunkData represents chunk payload for write operations.
+// The meaning of value []byte{} is empty value.
+// The meaning of value nil is we ignored it on read operation or did not provide it on update operation.
+type ChunkData struct {
 	Flags      uint8
 	DataDesc   uint8
 	MetaDesc   uint8
@@ -27,6 +27,13 @@ type Chunk struct {
 	Data       []byte
 	Meta       []byte
 	Vector     []byte
+}
+
+// Chunk represents chunk with metadata for read operations.
+type Chunk struct {
+	ID   uint32
+	Date uint64
+	ChunkData
 }
 
 // chunkRecord represents how chunk data is saved to the file

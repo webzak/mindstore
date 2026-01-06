@@ -7,7 +7,15 @@ import (
 	"os"
 )
 
-type Index struct {
+// IndexFlag represents bit flags for index records.
+type IndexFlag uint8
+
+const (
+	// FlagDeleted indicates the record is marked for deletion (bit 0).
+	FlagDeleted IndexFlag = 1 << 0
+)
+
+type index struct {
 	ID         uint32
 	Flags      uint8
 	DataDesc   uint8
@@ -21,11 +29,19 @@ type Index struct {
 	Date uint64
 }
 
-func (i *Index) size() int64 {
+func (i *index) size() int64 {
 	return sizeIndexRec
 }
 
-func (i *Index) blob() []byte {
+func (i *index) isDeleted() bool {
+	return i.Flags&uint8(FlagDeleted) != 0
+}
+
+func (i *index) setDeleted() {
+	i.Flags |= uint8(FlagDeleted)
+}
+
+func (i *index) blob() []byte {
 	buf := make([]byte, sizeIndexRec)
 	binary.LittleEndian.PutUint32(buf[0:], i.ID)
 	buf[4] = i.Flags
@@ -38,9 +54,15 @@ func (i *Index) blob() []byte {
 	return buf
 }
 
-func readIndex(f *os.File, h *header) (map[uint32]Index, uint32, error) {
+func (i *index) writeAt(f *os.File, headerSize int64) error {
+	pos := headerSize + int64(i.ID-1)*sizeIndexRec
+	_, err := f.WriteAt(i.blob(), pos)
+	return err
+}
+
+func readIndex(f *os.File, h *header) (map[uint32]index, uint32, error) {
 	if h.indexLen == 0 {
-		return make(map[uint32]Index), 0, nil
+		return make(map[uint32]index), 0, nil
 	}
 
 	buf := make([]byte, h.indexLen*sizeIndexRec)
@@ -48,12 +70,12 @@ func readIndex(f *os.File, h *header) (map[uint32]Index, uint32, error) {
 		return nil, 0, fmt.Errorf("failed to read index: %w", err)
 	}
 
-	index := make(map[uint32]Index, h.indexLen)
+	idx := make(map[uint32]index, h.indexLen)
 	var lastID uint32
 
 	for i := uint32(0); i < h.indexLen; i++ {
 		offset := int(i * sizeIndexRec)
-		rec := Index{
+		rec := index{
 			ID:         binary.LittleEndian.Uint32(buf[offset:]),
 			Flags:      buf[offset+4],
 			DataDesc:   buf[offset+5],
@@ -63,11 +85,14 @@ func readIndex(f *os.File, h *header) (map[uint32]Index, uint32, error) {
 			Size:       binary.LittleEndian.Uint64(buf[offset+16:]),
 			Date:       binary.LittleEndian.Uint64(buf[offset+24:]),
 		}
-		index[rec.ID] = rec
 		if rec.ID > lastID {
 			lastID = rec.ID
 		}
+		if rec.isDeleted() {
+			continue
+		}
+		idx[rec.ID] = rec
 	}
 
-	return index, lastID, nil
+	return idx, lastID, nil
 }
