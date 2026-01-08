@@ -294,7 +294,7 @@ func ReadInfo(path string) (*Info, error) {
 }
 
 // Append adds chunk data to file and returns id of added chunk
-func (d *Dataset) Append(c ChunkData) (uint32, error) {
+func (d *Dataset) Append(data, meta, vector Unit) (uint32, error) {
 	d.Lock()
 	defer d.Unlock()
 
@@ -303,6 +303,22 @@ func (d *Dataset) Append(c ChunkData) (uint32, error) {
 		if err := d.ChangeIndexCap(int(d.header.indexCap)*2, false); err != nil {
 			return 0, fmt.Errorf("failed to expand index capacity: %w", err)
 		}
+	}
+
+	// Extract blobs and descriptors from Units (handle nil)
+	var dataBlob, metaBlob, vectorBlob []byte
+	var dataDesc, metaDesc, vectorDesc uint8
+	if data != nil {
+		dataBlob = data.Blob()
+		dataDesc = data.Descriptor()
+	}
+	if meta != nil {
+		metaBlob = meta.Blob()
+		metaDesc = meta.Descriptor()
+	}
+	if vector != nil {
+		vectorBlob = vector.Blob()
+		vectorDesc = vector.Descriptor()
 	}
 
 	// Calculate chunk position - seek to end of file
@@ -314,12 +330,12 @@ func (d *Dataset) Append(c ChunkData) (uint32, error) {
 
 	// Create and write chunk record
 	cr := &chunkRecord{
-		dataSize:   uint64(len(c.Data)),
-		metaSize:   uint32(len(c.Meta)),
-		vectorSize: uint32(len(c.Vector)),
-		Data:       c.Data,
-		Meta:       c.Meta,
-		Vector:     c.Vector,
+		dataSize:   uint64(len(dataBlob)),
+		metaSize:   uint32(len(metaBlob)),
+		vectorSize: uint32(len(vectorBlob)),
+		Data:       dataBlob,
+		Meta:       metaBlob,
+		Vector:     vectorBlob,
 	}
 	if err := cr.write(d.f); err != nil {
 		return 0, fmt.Errorf("failed to write chunk: %w", err)
@@ -329,10 +345,10 @@ func (d *Dataset) Append(c ChunkData) (uint32, error) {
 	newID := d.lastID + 1
 	idx := index{
 		ID:         newID,
-		Flags:      c.Flags,
-		DataDesc:   c.DataDesc,
-		MetaDesc:   c.MetaDesc,
-		VectorDesc: c.VectorDesc,
+		Flags:      0,
+		DataDesc:   dataDesc,
+		MetaDesc:   metaDesc,
+		VectorDesc: vectorDesc,
 		Position:   chunkPos,
 		Size:       uint64(cr.size()),
 		Date:       uint64(time.Now().Unix()),
@@ -402,25 +418,20 @@ func (d *Dataset) Read(id uint32, fields ...Field) (*Chunk, error) {
 		return nil, err
 	}
 
-	// Build Chunk with selected fields
+	// Build Chunk with selected fields as RawUnit
 	chunk := &Chunk{
-		ID:   id,
-		Date: idx.Date,
-		ChunkData: ChunkData{
-			Flags:      idx.Flags,
-			DataDesc:   idx.DataDesc,
-			MetaDesc:   idx.MetaDesc,
-			VectorDesc: idx.VectorDesc,
-		},
+		ID:    id,
+		Date:  idx.Date,
+		Flags: idx.Flags,
 	}
 	if readData {
-		chunk.Data = cr.Data
+		chunk.Data = NewByteUnit(cr.Data, idx.DataDesc)
 	}
 	if readMeta {
-		chunk.Meta = cr.Meta
+		chunk.Meta = NewByteUnit(cr.Meta, idx.MetaDesc)
 	}
 	if readVector {
-		chunk.Vector = cr.Vector
+		chunk.Vector = NewByteUnit(cr.Vector, idx.VectorDesc)
 	}
 
 	return chunk, nil
@@ -454,9 +465,8 @@ func (d *Dataset) Delete(id uint32) bool {
 
 // Update modifies an existing chunk by ID.
 // The update appends the modified chunk to end of file and updates the index record.
-// For Data, Meta, Vector fields: nil means preserve current value, []byte{} means overwrite with empty.
-// Flags and descriptors are updated: nil fields preserve their descriptors, non-nil fields use new descriptors.
-func (d *Dataset) Update(id uint32, c ChunkData) error {
+// For data, meta, vector: nil Unit means preserve current value, non-nil overwrites.
+func (d *Dataset) Update(id uint32, data, meta, vector Unit) error {
 	d.Lock()
 	defer d.Unlock()
 
@@ -466,7 +476,7 @@ func (d *Dataset) Update(id uint32, c ChunkData) error {
 	}
 
 	// Check if we need to read existing chunk data
-	needsRead := c.Data == nil || c.Meta == nil || c.Vector == nil
+	needsRead := data == nil || meta == nil || vector == nil
 
 	var existing *chunkRecord
 	if needsRead {
@@ -485,28 +495,28 @@ func (d *Dataset) Update(id uint32, c ChunkData) error {
 	var newData, newMeta, newVector []byte
 	var newDataDesc, newMetaDesc, newVectorDesc uint8
 
-	if c.Data == nil {
+	if data == nil {
 		newData = existing.Data
 		newDataDesc = idx.DataDesc
 	} else {
-		newData = c.Data
-		newDataDesc = c.DataDesc
+		newData = data.Blob()
+		newDataDesc = data.Descriptor()
 	}
 
-	if c.Meta == nil {
+	if meta == nil {
 		newMeta = existing.Meta
 		newMetaDesc = idx.MetaDesc
 	} else {
-		newMeta = c.Meta
-		newMetaDesc = c.MetaDesc
+		newMeta = meta.Blob()
+		newMetaDesc = meta.Descriptor()
 	}
 
-	if c.Vector == nil {
+	if vector == nil {
 		newVector = existing.Vector
 		newVectorDesc = idx.VectorDesc
 	} else {
-		newVector = c.Vector
-		newVectorDesc = c.VectorDesc
+		newVector = vector.Blob()
+		newVectorDesc = vector.Descriptor()
 	}
 
 	// Seek to end of file to get chunk position
@@ -529,8 +539,7 @@ func (d *Dataset) Update(id uint32, c ChunkData) error {
 		return fmt.Errorf("failed to write chunk: %w", err)
 	}
 
-	// Update index record
-	idx.Flags = c.Flags
+	// Update index record (preserve existing flags)
 	idx.DataDesc = newDataDesc
 	idx.MetaDesc = newMetaDesc
 	idx.VectorDesc = newVectorDesc

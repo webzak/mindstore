@@ -16,24 +16,34 @@ const (
 	FieldVector
 )
 
-// ChunkData represents chunk payload for write operations.
-// The meaning of value []byte{} is empty value.
-// The meaning of value nil is we ignored it on read operation or did not provide it on update operation.
-type ChunkData struct {
-	Flags      uint8
-	DataDesc   uint8
-	MetaDesc   uint8
-	VectorDesc uint8
-	Data       []byte
-	Meta       []byte
-	Vector     []byte
+// Unit represents a blob with its descriptor
+type Unit interface {
+	Blob() []byte
+	Descriptor() uint8
 }
+
+// ByteUnit is the default implementation of Unit
+type ByteUnit struct {
+	data []byte
+	desc uint8
+}
+
+// NewByteUnit creates a new ByteUnit with the given data and descriptor
+func NewByteUnit(data []byte, descriptor uint8) *ByteUnit {
+	return &ByteUnit{data: data, desc: descriptor}
+}
+
+func (u *ByteUnit) Blob() []byte      { return u.data }
+func (u *ByteUnit) Descriptor() uint8 { return u.desc }
 
 // Chunk represents chunk with metadata for read operations.
 type Chunk struct {
-	ID   uint32
-	Date uint64
-	ChunkData
+	ID     uint32
+	Date   uint64
+	Flags  uint8
+	Data   Unit
+	Meta   Unit
+	Vector Unit
 }
 
 // chunkRecord represents how chunk data is saved to the file
@@ -132,10 +142,11 @@ func (d *Dataset) readChunkFields(c *Chunk, idx *index, fields []Field) error {
 
 	// Read data blob
 	if readData && dataSize > 0 {
-		c.Data = make([]byte, dataSize)
-		if _, err := io.ReadFull(d.f, c.Data); err != nil {
+		dataBlob := make([]byte, dataSize)
+		if _, err := io.ReadFull(d.f, dataBlob); err != nil {
 			return fmt.Errorf("failed to read data blob: %w", err)
 		}
+		c.Data = NewByteUnit(dataBlob, idx.DataDesc)
 	} else if dataSize > 0 {
 		// Skip data blob
 		if _, err := d.f.Seek(int64(dataSize), io.SeekCurrent); err != nil {
@@ -145,10 +156,11 @@ func (d *Dataset) readChunkFields(c *Chunk, idx *index, fields []Field) error {
 
 	// Read meta blob
 	if readMeta && metaSize > 0 {
-		c.Meta = make([]byte, metaSize)
-		if _, err := io.ReadFull(d.f, c.Meta); err != nil {
+		metaBlob := make([]byte, metaSize)
+		if _, err := io.ReadFull(d.f, metaBlob); err != nil {
 			return fmt.Errorf("failed to read meta blob: %w", err)
 		}
+		c.Meta = NewByteUnit(metaBlob, idx.MetaDesc)
 	} else if metaSize > 0 {
 		// Skip meta blob
 		if _, err := d.f.Seek(int64(metaSize), io.SeekCurrent); err != nil {
@@ -158,10 +170,11 @@ func (d *Dataset) readChunkFields(c *Chunk, idx *index, fields []Field) error {
 
 	// Read vector blob
 	if readVector && vectorSize > 0 {
-		c.Vector = make([]byte, vectorSize)
-		if _, err := io.ReadFull(d.f, c.Vector); err != nil {
+		vectorBlob := make([]byte, vectorSize)
+		if _, err := io.ReadFull(d.f, vectorBlob); err != nil {
 			return fmt.Errorf("failed to read vector blob: %w", err)
 		}
+		c.Vector = NewByteUnit(vectorBlob, idx.VectorDesc)
 	}
 
 	return nil

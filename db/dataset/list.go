@@ -79,14 +79,12 @@ func (b *ListBuilder) Iter() iter.Seq2[*Chunk, error] {
 
 			// Create chunk with index metadata
 			chunk := &Chunk{
-				ID:   idx.ID,
-				Date: idx.Date,
-				ChunkData: ChunkData{
-					Flags:      idx.Flags,
-					DataDesc:   idx.DataDesc,
-					MetaDesc:   idx.MetaDesc,
-					VectorDesc: idx.VectorDesc,
-				},
+				ID:     idx.ID,
+				Date:   idx.Date,
+				Flags:  idx.Flags,
+				Data:   NewByteUnit(nil, idx.DataDesc),
+				Meta:   NewByteUnit(nil, idx.MetaDesc),
+				Vector: NewByteUnit(nil, idx.VectorDesc),
 			}
 
 			// Execute pipeline stages in order
