@@ -9,7 +9,7 @@ import (
 
 func tempDataset(t *testing.T) *Dataset {
 	path := filepath.Join(t.TempDir(), "test.ds")
-	ds, err := NewDataset(path, nil, 10)
+	ds, err := NewDataset(path, 0, nil, 10)
 	assert.NilError(t, err)
 	return ds
 }
@@ -90,4 +90,31 @@ func TestList(t *testing.T) {
 		count++
 	}
 	assert.Equal(t, 3, count)
+}
+
+func TestOptimize(t *testing.T) {
+	ds := tempDataset(t)
+	defer ds.Close()
+
+	id1, _ := ds.Append(ChunkData{Data: []byte("one")})
+	id2, _ := ds.Append(ChunkData{Data: []byte("two")})
+	id3, _ := ds.Append(ChunkData{Data: []byte("three")})
+
+	ds.Delete(id2)
+
+	err := ds.Optimize()
+	assert.NilError(t, err)
+
+	// Verify IDs are preserved and data is correct
+	c1, err := ds.Read(id1)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, []byte("one"), c1.Data)
+
+	c3, err := ds.Read(id3)
+	assert.NilError(t, err)
+	assert.DeepEqual(t, []byte("three"), c3.Data)
+
+	// Verify deleted record stays deleted
+	_, err = ds.Read(id2)
+	assert.NotNilError(t, err)
 }

@@ -14,6 +14,7 @@ const (
 // header represents the dataset file starting part up to index space
 type header struct {
 	magic      uint32
+	signature  uint32
 	configSize uint32
 	// config is raw messagepack data
 	config []byte
@@ -25,7 +26,7 @@ type header struct {
 
 // size of header record in bytes
 func (h *header) size() int64 {
-	return int64(h.configSize + size32*4)
+	return int64(h.configSize + size32*5)
 }
 
 // data space position in file
@@ -35,12 +36,15 @@ func (h *header) dataSpacePos() int64 {
 
 func (h *header) blob() []byte {
 	configSize := uint32(len(h.config))
-	blobSize := sizeMagic + int(configSize) + size32*3
+	blobSize := sizeMagic + int(configSize) + size32*4
 	blob := make([]byte, blobSize)
 
 	offset := 0
 	binary.LittleEndian.PutUint32(blob[offset:], magic)
 	offset += sizeMagic
+
+	binary.LittleEndian.PutUint32(blob[offset:], h.signature)
+	offset += size32
 
 	binary.LittleEndian.PutUint32(blob[offset:], configSize)
 	offset += size32
@@ -61,8 +65,8 @@ func readHeader(f *os.File) (*header, error) {
 		return nil, fmt.Errorf("failed to seek: %w", err)
 	}
 
-	// Read magic + configSize to determine total size
-	initialBuf := make([]byte, sizeMagic+size32)
+	// Read magic + signature + configSize to determine total size
+	initialBuf := make([]byte, sizeMagic+size32*2)
 	if _, err := io.ReadFull(f, initialBuf); err != nil {
 		return nil, fmt.Errorf("failed to read initial header: %w", err)
 	}
@@ -73,8 +77,11 @@ func readHeader(f *os.File) (*header, error) {
 		return nil, fmt.Errorf("invalid magic bytes: expected 0x%08x, got 0x%08x", magic, readMagic)
 	}
 
+	// Extract signature
+	signature := binary.LittleEndian.Uint32(initialBuf[sizeMagic:])
+
 	// Extract configSize
-	configSize := binary.LittleEndian.Uint32(initialBuf[sizeMagic:])
+	configSize := binary.LittleEndian.Uint32(initialBuf[sizeMagic+size32:])
 
 	// Calculate and read remaining header data
 	remainingSize := int(configSize) + size32*2
@@ -99,6 +106,7 @@ func readHeader(f *os.File) (*header, error) {
 	// Construct header struct
 	h := &header{
 		magic:      readMagic,
+		signature:  signature,
 		configSize: configSize,
 		config:     config,
 		indexCap:   indexCap,

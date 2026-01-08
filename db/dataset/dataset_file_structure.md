@@ -3,6 +3,7 @@
 ### File strucrue
 
 - 4 magic bytes 0x19 0x72 0x06 0x11
+- signature u32 (collection type identifier)
 - config size u32
 - config body []byte (messagepack format internally)
 - index capacity u32 (the amoutn of real and reserved records)

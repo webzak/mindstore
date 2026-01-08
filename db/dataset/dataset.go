@@ -24,8 +24,16 @@ type Dataset struct {
 	lastID uint32
 }
 
+// Info contains dataset header information for inspection without keeping file open.
+type Info struct {
+	Signature uint32
+	Config    []byte
+	IndexCap  uint32
+	IndexLen  uint32
+}
+
 // NewDataset creates new dataset file
-func NewDataset(path string, config []byte, indexCap int) (*Dataset, error) {
+func NewDataset(path string, signature uint32, config []byte, indexCap int) (*Dataset, error) {
 	if path == "" {
 		return nil, fmt.Errorf("path cannot be empty")
 	}
@@ -42,6 +50,7 @@ func NewDataset(path string, config []byte, indexCap int) (*Dataset, error) {
 	// Create header struct
 	h := &header{
 		magic:      magic,
+		signature:  signature,
 		configSize: uint32(len(config)),
 		config:     config,
 		indexCap:   uint32(indexCap),
@@ -99,6 +108,7 @@ func (d *Dataset) ChangeIndexCap(newCap int, useLock bool) error {
 	// Create new header with updated capacity
 	newHeader := &header{
 		magic:      d.header.magic,
+		signature:  d.header.signature,
 		configSize: d.header.configSize,
 		config:     d.header.config,
 		indexCap:   uint32(newCap),
@@ -204,6 +214,7 @@ func (d *Dataset) UpdateConfig(config []byte, useLock bool) error {
 
 	newHeader := &header{
 		magic:      d.header.magic,
+		signature:  d.header.signature,
 		configSize: uint32(len(config)),
 		config:     config,
 		indexCap:   d.header.indexCap,
@@ -224,6 +235,13 @@ func (d *Dataset) Config() []byte {
 	config := make([]byte, len(d.header.config))
 	copy(config, d.header.config)
 	return config
+}
+
+// Signature returns the dataset signature.
+func (d *Dataset) Signature() uint32 {
+	d.Lock()
+	defer d.Unlock()
+	return d.header.signature
 }
 
 // OpenDataset function opens existing dataset file
@@ -251,6 +269,27 @@ func OpenDataset(path string) (*Dataset, error) {
 		header: h,
 		index:  index,
 		lastID: lastID,
+	}, nil
+}
+
+// ReadInfo reads dataset header information without keeping file open.
+func ReadInfo(path string) (*Info, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	h, err := readHeader(f)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Info{
+		Signature: h.signature,
+		Config:    h.config,
+		IndexCap:  h.indexCap,
+		IndexLen:  h.indexLen,
 	}, nil
 }
 
